@@ -11,8 +11,8 @@ Options:
   --defabc=pps  specify default abc on preset picture setting for testing
   --mdd         tv has mdd
   --hdr=pps     specify hdr preset picture setting for testing
-  --hdrabc      test abc with hdr
-  --brabc       test abc with brightest pps
+  --hdrabc=pps  specify hdr preset picture setting for hdr abc testing
+  --brabc=pps   specify "brightest" pps for testing with abc on
   --qson        standby test with qs on
   --qs          tv has quickstart
 """
@@ -69,9 +69,9 @@ def get_test_order(docopt_args):
         'stabilization',
     ]
     test_order += abc_def_tests[bool(docopt_args['--defabc'])]
-    test_order += abc_br_tests[docopt_args['--brabc']]
+    test_order += abc_br_tests[bool(docopt_args['--brabc'])]
     if docopt_args['--hdr']:
-        test_order += abc_hdr_tests[docopt_args['--hdrabc']]
+        test_order += abc_hdr_tests[bool(docopt_args['--hdrabc'])]
     return test_order
 
 
@@ -113,76 +113,89 @@ def create_test_seq_df(tests, test_order, docopt_args):
     return df.reset_index()
 
 
+def display_row_settings(row):
+    non_setting_cols = ['special_commands', 'tag', 'test_name', 'test_time']
+    display_row = row.drop(non_setting_cols).dropna().rename(RENAME_DICT).replace(RENAME_DICT)
+    s = ''
+    for setting, val in zip(display_row.index, display_row):
+        s += f'{setting} - {val}\\n'
+    return s
+
+
 def user_message(i, test_seq_df):
     previous_row = test_seq_df.iloc[i - 1]
     current_row = test_seq_df.iloc[i]
-    changes = current_row[current_row == previous_row]
+    changes = current_row[current_row != previous_row]
 
     setting_titles = {
         'mdd': 'motion detection dimming (MDD)',
         'abc': 'automatic brightness control (ABC)',
         'qs': 'quickstart (QS)',
-        'preset_picture': 'preset picture'
+        'preset_picture': 'preset picture',
     }
 
-    s = ''
+    message = f'Test Name: {current_row["test_name"]}\\nTest Tag: {current_row["tag"]}\\nTest Time (seconds): {int(current_row["test_time"])}\\n\\n'
     for col, change_val in changes.iteritems():
-        if col in ['preset_picture', 'abc', 'mdd', 'qs']:
-            s += f'Change the {setting_titles[col]} setting to {change_val}\\n'
+        if col in setting_titles.keys():
+            message += f'Change the {setting_titles[col]} setting to {change_val}\\n'
         elif col == 'lux':
-            s += f'Adjust the illuminance level to {change_val} lux\\n'
+            message += f'Adjust the illuminance level to {change_val} lux\\n'
         elif col == 'video':
-            s += f'Change the video clip to {RENAME_DICT[change_val]}\\n'
+            message += f'Change the video clip to {RENAME_DICT[change_val]}\\n'
         elif col == 'backlight' and change_val == 'lowest_level':
-            s += 'Lower the backlight setting to the lowest possible level'
+            message += 'Lower the backlight setting to the lowest possible level\\n'
 
-    s += '\\nThe conditions for the current test should be:\\n'
-    s += current_row.dropna().rename(RENAME_DICT).replace(RENAME_DICT).to_string().replace('\n', '\\n')
-    s += '\\n When ready, begin the test clip and press the button below when the countdown timer reaches 0.'
-    return s
-
-
-WT_MESSAGE1 = "Now that the standby test is complete we are going to measure wake time. Press the button below at" \
-    "the same time as you press the power button to turn on your television. You will then see another button to press. As soon as the TV has become responsive to input, press this button."
+    message += '\\nThe conditions for the current test should be:\\n'
+    message += display_row_settings(current_row)
+    message += '\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
+    return message
 
 
-WT_MESSAGE2 = "As soon as the TV becomes responsive to input, press the button below."
+WT_MESSAGE1 = "Now that the standby test is complete we are going to measure wake time. Press the OK button at " \
+    "the same time as you press the power button to turn on the television. " \
+    "A new message will appear asking you to press another button as soon as the TV has become responsive to input."
+
+
+WT_MESSAGE2 = "As soon as the TV becomes responsive to input press the OK button."
 
 
 def lum_profile_message(row):
-    s = 'Next we will capture the luminance profile of the TV. Change the video clip to SDR Luminance Profile\\n'
-    s += '\\nThe conditions for this test should be:\\n'
-    s += row.dropna().rename(RENAME_DICT).replace(RENAME_DICT).to_string().replace('\n', '\\n')
-    s += '\\n When ready, begin the test clip and press the button below when the countdown timer reaches 0.'
-    return s
+    message = f'Test Name: {row["test_name"]}\\nTest Tag: {row["tag"]}\\n\\n'
+    message += 'Next we will capture the luminance profile of the TV.\\nChange the video clip to SDR Luminance Profile\\n'
+    message += '\\nThe conditions for this test should be:\\n'
+    message += display_row_settings(row)
+    message += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
+    return message
 
 
 def stabilization_message(row):
-    s = 'The following test will be a stabilization test. We will run these until we get two consecutive tests with average power within 2% of each other.\\n'
-    s += '\\nThe conditions for this test should be:\\n'
-    s += row.dropna().rename(RENAME_DICT).replace(RENAME_DICT).to_string().replace('\n', '\\n')
-    s += '\\n When ready, begin the test clip and press the button below when the countdown timer reaches 0.'
-    return s
+    message = f'Test Name: {row["test_name"]}\\nTest Tag: {row["tag"]}\\n\\n'
+    message += 'The following test will be a stabilization test. We will run these until we get two consecutive tests with average power within 2% of each other.\\n'
+    message += '\\nThe conditions for this test should be:\\n'
+    message += display_row_settings(row)
+    message += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
+    return message
 
 
 def standby_message(row):
-    message = f'Test Name: {row["test_name"]}\\n'
-    message += f'The next test will be a standby test. It will last {row["test_time"]/60} minutes \\n'
+
+    message = f'Test Name: {row["test_name"]}\\nTest Time (seconds): {int(row["test_time"])}\\n\\n'
+    message += f'The next test will be a standby test\\n'
     if 'echo' in row['test_name']:
         message += 'Connect the TV to the Amazon Echo\\n'
     if 'google' in row['test_name']:
         message += 'Connect the TV to the Google Home\\n'
     if 'qs' in row.index:
         message += f'Ensure that QuckStart is set to {RENAME_DICT[row["qs"]]}.\\n'
-    message += "Power down the TV using the remote and press the button below to begin test."
+    message += "Power down the TV using the remote and press the OK button to begin test."
     return message
 
 
 def screen_config_message(row):
     s = 'Next we will configure the camera for the remaining tests.\\n'
     s += '\\nThe conditions for this test should be:\\n'
-    s += row.dropna().rename(RENAME_DICT).replace(RENAME_DICT).to_string().replace('\n', '\\n')
-    s += '\\n When ready, begin the test clip and press the button below when the countdown timer reaches 0.'
+    s += display_row_settings(row)
+    s += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
     return s
 
 
