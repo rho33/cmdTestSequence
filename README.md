@@ -1,4 +1,12 @@
-# Title
+# TV Test Sequence Generator CLI
+# Installation
+1. go to https://github.com/pacific-crest-labs/cmdTestSequence/releases
+2. Click on (download) tv_test_sequence.zip from the most recent release. ![installation](inked-installation.jpg)
+3. Extract zip file
+4. Call the tv_test_sequence.exe from the command line
+
+Don't move the tv_test_sequence.exe file out of its folder. It will not work.
+
 # Usage
 ![usage-string](usage.png)  
 #### Simplest Example:
@@ -53,7 +61,7 @@ Argument Breakdown:
  - (--hdr standard) test with hdr content in default hdr pps, standard
  - (--mdd) tv has motion detection dimming
  - (--qs) tv has quickstart
- - (--qson) test tv with quickstart on (for standby tests)
+ - (--qson) test tv with quickstart on for standby tests
  
 # Output Files
 1. Test Sequence - a csv file where each line is a test and each column is a test detail
