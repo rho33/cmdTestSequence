@@ -19,7 +19,9 @@ Options:
 from docopt import docopt
 import pandas as pd
 import sys
+import shutil
 from pathlib import Path
+from datetime import datetime
 
 RENAME_DICT = {
     'tag': 'Test Number',
@@ -233,14 +235,47 @@ def create_command_df(test_seq_df):
     return command_df
 
 
+def archive(filepath, copy=True, date=False):
+    path = Path(filepath)
+    archive_dir = path.parent.joinpath('Archive')
+    if not archive_dir.exists():
+        archive_dir.mkdir()
+
+    if date:
+        today = datetime.today().strftime('%Y-%h-%d-%H-%M')
+        save_path = archive_dir.joinpath(f'{path.stem}-{today}{path.suffix}')
+    else:
+        save_path = archive_dir.joinpath(f'{path.name}')
+
+    if copy:
+        shutil.copyfile(path, save_path)
+    else:
+        shutil.move(path, save_path)
+
+
 def main():
     docopt_args = docopt(__doc__)
     test_order = get_test_order(docopt_args)
     tests = get_tests()
     test_seq_df = create_test_seq_df(tests, test_order, docopt_args)
-    test_seq_df.to_csv("test-sequence.csv", index=False)
     command_df = create_command_df(test_seq_df)
-    command_df.to_csv('command-sequence.csv', index=False, header=False)
+
+    results_dir = Path(docopt_args['<model>'])
+    results_dir.mkdir(exist_ok=True)
+
+    filename = 'test-sequence.csv'
+    test_seq_df.to_csv(filename, index=False)
+    results_filepath = results_dir.joinpath(filename)
+    if results_filepath.exists():
+        archive(results_filepath, date=True)
+    shutil.copy(filename, results_filepath)
+
+    filename = 'command-sequence.csv'
+    command_df.to_csv(filename, index=False, header=False)
+    results_filepath = results_dir.joinpath(filename)
+    if results_filepath.exists():
+        archive(results_filepath, date=True)
+    shutil.copy(filename, results_filepath)
 
 
 if __name__ == '__main__':

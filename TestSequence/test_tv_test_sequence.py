@@ -3,6 +3,7 @@ from docopt import docopt
 import pandas as pd
 import tv_test_sequence as tts
 
+
 def get_arg_seqs():
     """get all valid argument combinations/sequences"""
     options = {
@@ -154,7 +155,6 @@ def test_get_tests():
         assert test_name == details['test_name']
 
 
-
 def test_create_test_seq_df():
     arg_seqs = get_arg_seqs()
     for _, seq in arg_seqs.items():
@@ -190,7 +190,6 @@ def test_create_test_seq_df():
             assert hasna == expected_col_hasna[col]
 
 
-
 def test_messages():
     args = ['some model', 'standard', 'dynamic', '--mdd', '--hdr', 'hdr standard']
     docopt_args = docopt(tts.__doc__, argv=args)
@@ -198,11 +197,17 @@ def test_messages():
     tests = tts.get_tests()
     test_seq_df = tts.create_test_seq_df(tests, test_order, docopt_args)
     for i, row in test_seq_df.iterrows():
-        assert isinstance(tts.user_message(i, test_seq_df), str)
-        assert isinstance(tts.lum_profile_message(row), str)
-        assert isinstance(tts.stabilization_message(row), str)
-        assert isinstance(tts.standby_message(row), str)
-        assert isinstance(tts.screen_config_message(row), str)
+        print(i)
+        if 'stabilization' in row['test_name']:
+            assert isinstance(tts.stabilization_message(row), str)
+        elif 'lum' in row['test_name']:
+            assert isinstance(tts.lum_profile_message(row), str)
+        elif 'standby' in row['test_name']:
+            assert isinstance(tts.standby_message(row), str)
+        elif 'screen' in row['test_name']:
+            assert isinstance(tts.screen_config_message(row), str)
+        elif 'waketime' not in row['test_name']:
+            assert isinstance(tts.user_message(i, test_seq_df), str)
 
 
 def test_create_command_df():

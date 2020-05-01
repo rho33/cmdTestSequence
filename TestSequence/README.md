@@ -1,14 +1,14 @@
 # TV Test Sequence Generator CLI
 # Installation
 1. go to https://github.com/pacific-crest-labs/cmdTestSequence/releases
-2. Click on (download) tv_test_sequence.zip from the most recent release. ![installation](inked-installation.jpg)
+2. Click on (download) tv_test_sequence.zip from the most recent release. ![installation](images/inked-installation.jpg)
 3. Extract zip file
 4. Call the tv_test_sequence.exe from the command line
 
 Don't move the tv_test_sequence.exe file out of its folder. It will not work.
 
 # Usage
-![usage-string](usage.png)  
+![usage-string](images/usage.png)  
 #### Simplest Example:
 
     tv_test_sequence.exe some_model standard vivid
@@ -65,7 +65,7 @@ Argument Breakdown:
  
 # Output Files
 1. Test Sequence - a csv file where each line is a test and each column is a test detail
-![test-seq](test-sequence.png)
+![test-seq](images/test-sequence.png)
 2. Command Sequence - the sequence of commands to be read by LabView in order to execute the test sequence  
-![command-seq](command-sequence.png)
+![command-seq](images/command-sequence.png)
 
