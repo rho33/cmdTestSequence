@@ -127,7 +127,7 @@ def display_row_settings(row):
 def user_message(i, test_seq_df):
     previous_row = test_seq_df.iloc[i - 1]
     current_row = test_seq_df.iloc[i]
-    changes = current_row[current_row != previous_row]
+    changes = current_row[(current_row != previous_row) & pd.notnull(current_row)]
 
     setting_titles = {
         'mdd': 'motion detection dimming (MDD)',
@@ -175,7 +175,7 @@ def stabilization_message(row):
     message += 'The following test will be a stabilization test. We will run these until we get two consecutive tests with average power within 2% of each other.\\n'
     message += '\\nThe conditions for this test should be:\\n'
     message += display_row_settings(row)
-    message += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
+    message += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.\\n'
     return message
 
 
