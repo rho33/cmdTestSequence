@@ -1,6 +1,7 @@
 import datetime
 import sys
 from pathlib import Path
+import numpy as np
 import pandas as pd
 
 
@@ -30,6 +31,8 @@ def clean_tag(tag):
     if 'stabilization' in str(tag):
         tag = '{}.{}'.format(tag[0], tag[-1])
         return float(tag)
+    elif 'user command' in str(tag):
+        return np.nan
     else:
         return float(tag)
 
@@ -92,6 +95,7 @@ def merge_test_data(test_seq_df, data_df):
     data_df = data_df.drop_duplicates(subset=['time']).reset_index()[['time', 'Power', 'Luminance', 'Tag']]
     data_df = data_df.dropna(subset=['Tag'])
     data_df['Tag'] = data_df['Tag'].apply(clean_tag)
+    data_df = data_df.dropna(subset=['Tag'])
     test_seq_df = add_stab_tests(test_seq_df, data_df)
     data_df.columns = ['time', 'watts', 'nits', 'tag']
     data_df = data_df.merge(test_seq_df, on='tag', how='left')

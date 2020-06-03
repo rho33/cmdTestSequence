@@ -64,8 +64,11 @@ Argument Breakdown:
  - (--qson) test tv with quickstart on for standby tests
  
 # Output Files
-1. Test Sequence - a csv file where each line is a test and each column is a test detail
+1. Test Sequence - a csv file where each line is a test and each column is a test detail (feature)
 ![test-seq](images/test-sequence.png)
 2. Command Sequence - the sequence of commands to be read by LabView in order to execute the test sequence  
 ![command-seq](images/command-sequence.png)
 
+# Configuration Files
+These files/folders are in the same directory as the executable.
+- test-details.csv - contains all the test details for all of the possible tests.

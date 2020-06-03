@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 from collections import namedtuple, OrderedDict
 from itertools import chain
 from hashlib import sha1
@@ -17,8 +20,7 @@ from reportlab.platypus.frames import Frame
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-import matplotlib.pyplot as plt
-import matplotlib
+from matplotlib.pyplot import gcf
 import pandas as pd
 
 
@@ -35,7 +37,6 @@ pdfmetrics.registerFontFamily(
     italic='Calibri-Italic',
     boldItalic='Calibri-Bold-Italic',
 )
-
 
 
 class MyDocTemplate(BaseDocTemplate):
@@ -283,7 +284,7 @@ def make_img(plot, max_width=439, max_height=650, **kw):
 def flowable_factory(content, **kw):
     """Return appropriate flowable object from given content type"""
     factory = {
-        type(plt.gcf()): make_img,
+        type(gcf()): make_img,
         str: make_paragraph,
         pd.core.frame.DataFrame: make_table
     }
@@ -294,9 +295,9 @@ class Element(namedtuple('Element', ['content', 'spacer'])):
     """A namedtuple with two fields, one for a content flowable and one for a spacer flowable"""
 
     @classmethod
-    def from_content(cls, content, header=False, level=1, numbering=True, spacer_height=.15 * inch, **kw):
+    def from_content(cls, content, heading=False, level=1, numbering=True, spacer_height=.15 * inch, **kw):
         """Return an Element object containing appropriate flowables from raw content."""
-        if header:
+        if heading:
             style = PARAGRAPH_STYLES[f'Heading{level}']
             content_flowable = do_heading(content, style, numbering=numbering)
         else:
@@ -322,6 +323,7 @@ class Section(Node):
         self.elements = elements
         self.story_start = []
         self.page_break = page_break
+        self.path_str = '/'.join([node.name for node in self.path])
 
     def __enter__(self):
         return self
@@ -340,7 +342,7 @@ class Section(Node):
 
     def new_section(self, title, numbering=True, **kw):
         """Create and Return new child Section (subsection)."""
-        new_section = Section(name=title, elements={}, parent=self, **kw)
+        new_section = type(self)(name=title, elements={}, parent=self, **kw)
         new_section.elements['title'] = Element.from_content(title, header=True, numbering=numbering,
                                                              level=self.depth + 1)
         return new_section

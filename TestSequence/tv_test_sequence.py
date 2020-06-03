@@ -118,40 +118,66 @@ def create_test_seq_df(tests, test_order, docopt_args):
 def display_row_settings(row):
     non_setting_cols = ['special_commands', 'tag', 'test_name', 'test_time']
     display_row = row.drop(non_setting_cols).dropna().rename(RENAME_DICT).replace(RENAME_DICT)
-    s = ''
+    s = '-'*80
+    s += '\\nThe conditions for the current test should be:\\n\\n'
     for setting, val in zip(display_row.index, display_row):
-        s += f'{setting} - {val}\\n'
+        if setting == 'Illuminance Level (Lux)':
+            val = int(val)
+        s += f'    {setting} - {val}\\n'
     return s
 
 
-def user_message(i, test_seq_df):
-    previous_row = test_seq_df.iloc[i - 1]
-    current_row = test_seq_df.iloc[i]
-    changes = current_row[(current_row != previous_row) & pd.notnull(current_row)]
+def message_heading(current_row):
+    message = f'Test Name: {current_row["test_name"]}\\nTest Tag: {current_row["tag"]}\\n'
+    if pd.notnull(current_row['test_time']):
+        message += f'Test Time (seconds): {int(current_row["test_time"])}\\n\\n'
+    return message
 
+
+def message_instructions(current_row, previous_row=None, extra=None):
     setting_titles = {
         'mdd': 'motion detection dimming (MDD)',
         'abc': 'automatic brightness control (ABC)',
         'qs': 'quickstart (QS)',
         'preset_picture': 'preset picture',
     }
-
-    message = f'Test Name: {current_row["test_name"]}\\nTest Tag: {current_row["tag"]}\\nTest Time (seconds): {int(current_row["test_time"])}\\n\\n'
-    for col, change_val in changes.iteritems():
-        if col in setting_titles.keys():
-            message += f'Change the {setting_titles[col]} setting to {change_val}\\n'
-        elif col == 'lux':
-            message += f'Adjust the illuminance level to {change_val} lux\\n'
-        elif col == 'video':
-            message += f'Change the video clip to {RENAME_DICT[change_val]}\\n'
-        elif col == 'backlight' and change_val == 'lowest_level':
-            message += 'Lower the backlight setting to the lowest possible level\\n'
-
-    message += '\\nThe conditions for the current test should be:\\n'
-    message += display_row_settings(current_row)
-    message += '\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
+    test_clip = RENAME_DICT[current_row['video']]
+    message = '-' * 80
+    message += '\\nInstructions:\\n\\n'
+    if extra:
+        message += extra
+    if previous_row is not None:
+        changes = current_row[(current_row != previous_row) & pd.notnull(current_row)]
+        for col, change_val in changes.iteritems():
+            if col in setting_titles.keys():
+                message += f'* Change the {setting_titles[col]} setting to {change_val}\\n'
+            elif col == 'lux':
+                message += f'* Adjust the illuminance level to {int(change_val)} lux\\n'
+            elif col == 'video':
+                message += f'* Change the video clip to {test_clip}\\n'
+            elif col == 'backlight' and change_val == 'lowest_level':
+                message += '* Lower the backlight setting to the lowest possible level\\n'
+    message += f'* When ready begin the {test_clip} clip and press the OK button when the countdown timer reaches 0.\\n\\n'
     return message
 
+
+def user_message(i, test_seq_df):
+    previous_row = test_seq_df.iloc[i - 1]
+    current_row = test_seq_df.iloc[i]
+    message = message_heading(current_row)
+    message += message_instructions(current_row, previous_row)
+    message += display_row_settings(current_row)
+    return message
+
+
+def waketime_message_start(row):
+    message = message_heading(row)
+    message += '-' * 80
+    message += '\\nInstructions:\\n\\n'
+    message += '* Now that the standby test is complete we are going to measure wake time.\\n'
+    message += '* Press the OK button at the same time as you press the power button to turn on the television.\\n'
+    message += '* A new message will appear asking you to press another button as soon as the TV has become responsive to input.'
+    return message
 
 WT_MESSAGE1 = "Now that the standby test is complete we are going to measure wake time. Press the OK button at " \
     "the same time as you press the power button to turn on the television. " \
@@ -162,43 +188,44 @@ WT_MESSAGE2 = "As soon as the TV becomes responsive to input press the OK button
 
 
 def lum_profile_message(row):
-    message = f'Test Name: {row["test_name"]}\\nTest Tag: {row["tag"]}\\n\\n'
-    message += 'Next we will capture the luminance profile of the TV.\\nChange the video clip to SDR Luminance Profile\\n'
-    message += '\\nThe conditions for this test should be:\\n'
+    message = message_heading(row)
+    extra = '* Next we will capture the luminance profile of the TV.\\n'
+    message += message_instructions(row, extra=extra)
     message += display_row_settings(row)
-    message += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
     return message
 
 
 def stabilization_message(row):
-    message = f'Test Name: {row["test_name"]}\\nTest Tag: {row["tag"]}\\n\\n'
-    message += 'The following test will be a stabilization test. We will run these until we get two consecutive tests with average power within 2% of each other.\\n'
-    message += '\\nThe conditions for this test should be:\\n'
+    message = message_heading(row)
+    extra = '* The following test will be a stabilization test.\\n'
+    extra += '* We will run these continually until we get two consecutive tests with average power within 2% of each other.\\n'
+    message += message_instructions(row, extra=extra)
     message += display_row_settings(row)
-    message += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.\\n'
     return message
 
 
 def standby_message(row):
 
-    message = f'Test Name: {row["test_name"]}\\nTest Time (seconds): {int(row["test_time"])}\\n\\n'
-    message += f'The next test will be a standby test\\n'
+    message = message_heading(row)
+    message += '-' * 80
+    message += '\\nInstructions:\\n\\n'
+    message += f'* The next test will be a standby test.\\n'
     if 'echo' in row['test_name']:
-        message += 'Connect the TV to the Amazon Echo\\n'
+        message += '* Connect the TV to the Amazon Echo\\n'
     if 'google' in row['test_name']:
-        message += 'Connect the TV to the Google Home\\n'
+        message += '* Connect the TV to the Google Home\\n'
     if 'qs' in row.index:
-        message += f'Ensure that QuckStart is set to {RENAME_DICT[row["qs"]]}.\\n'
-    message += "Power down the TV using the remote and press the OK button to begin test."
+        message += f'* Ensure that QuckStart is set to {RENAME_DICT[row["qs"]]}.\\n'
+    message += "* Power down the TV using the remote and press the OK button to begin test."
     return message
 
 
 def screen_config_message(row):
-    s = 'Next we will configure the camera for the remaining tests.\\n'
-    s += '\\nThe conditions for this test should be:\\n'
-    s += display_row_settings(row)
-    s += '\\n\\n When ready begin the test clip and press the OK button when the countdown timer reaches 0.'
-    return s
+    message = message_heading(row)
+    extra = '* Next we will configure the camera for the remaining tests.\\n'
+    message += message_instructions(row, extra=extra)
+    message += display_row_settings(row)
+    return message
 
 
 def create_command_df(test_seq_df):
@@ -207,7 +234,7 @@ def create_command_df(test_seq_df):
         command_rows.append(('tag', row['tag']))
         if 'waketime' in row['test_name']:
             command_rows.extend([
-                ('user_command', WT_MESSAGE1),
+                ('user_command', waketime_message_start(row)),
                 ('tag', row['tag'] + .1),
                 ('user_command', WT_MESSAGE2)
             ])
