@@ -110,7 +110,7 @@ def create_test_seq_df(tests, test_order, docopt_args):
         'abc_default': docopt_args['--defabc']
     }
     df['preset_picture'] = df['preset_picture'].replace(rename_pps)
-
+    df.index = range(1, len(df)+1)
     df.index.name = 'tag'
     return df.reset_index()
 
