@@ -1,14 +1,14 @@
 import sys
-from pathlib import Path
-from shutil import copyfile
+from shutil import copyfile, copytree
 from cx_Freeze import setup, Executable
 import os
 from zipfile import ZipFile
-import scipy
+# import scipy
 
-includefiles_list=[]
-scipy_path = os.path.dirname(scipy.__file__)
-includefiles_list.append(scipy_path)
+sys.path.append(r'.\Report')
+# includefiles_list=[]
+# scipy_path = os.path.dirname(scipy.__file__)
+# includefiles_list.append(scipy_path)
 
 
 def zipdir(directory, destination=None):
@@ -37,10 +37,9 @@ def zipdir(directory, destination=None):
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
-    "packages": ['matplotlib'],
-    "includes": ['pandas', 'docopt','matplotlib', 'matplotlib.backends.backend_tkagg', 'seaborn',
+    # "packages": ['scipy'],
+    "includes": ['pandas', 'docopt','matplotlib', 'matplotlib.backends.backend_tkagg', 'seaborn', 'scipy.ndimage._ni_support',
                  'seaborn.cm', 'scipy', 'scipy.spatial.ckdtree', 'scipy.sparse.csgraph._validation'],
-    "include_files": includefiles_list
 }
 
 # GUI applications require a different base on Windows (the default is for a
@@ -53,12 +52,23 @@ setup(  name = "TV Test Report",
         version = "0.1",
         description = 'Creates pdf report from test results',
         options = {"build_exe": build_exe_options},
-        executables = [Executable("report.py", base=base)])
+        executables = [Executable(r"Report\report.py", base=base), Executable(r"TestSequence\tv_test_sequence.py", base=base)]
+        )
 
-for file in ['coeffs.csv', 'intro-text.csv']:
-    copyfile(file, Path('build/exe.win-amd64-3.6').joinpath(file))
+copyfile(r'TestSequence\test-details.csv', r'build\exe.win-amd64-3.6\test-details.csv')
+copyfile(r'Report\coeffs.csv', r'build\exe.win-amd64-3.6\coeffs.csv')
+copyfile(r'Report\intro-text.csv', r'build\exe.win-amd64-3.6\intro-text.csv')
 
-zipdir('build/exe.win-amd64-3.6', './tv-test-report.zip')
+src, dst = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\APL', r'build\exe.win-amd64-3.6\APL'
+if not os.path.isdir(dst):
+    copytree(src, dst)
+else:
+    for file in os.listdir(src):
+        copyfile(os.path.join(src, file), os.path.join(dst, file))
+
+zipdir('build/exe.win-amd64-3.6', './tv-test-scripts.zip')
+
+
 
 os.chdir(r'build\exe.win-amd64-3.6\lib\scipy\spatial')
 filename = 'cKDTree.cp36-win_amd64.pyd'

@@ -1,19 +1,12 @@
-# import re
 from collections import OrderedDict
 import numpy as np
-# import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib import transforms
-
+from matplotlib import rcParams, transforms
 import matplotlib.lines as mlines
-# from matplotlib import transforms
-import seaborn as sns
-# from scipy.stats import pearsonr
-# import tables
-# Set matplotlib font.
-matplotlib.rcParams['font.family'] = "sans-serif"
-matplotlib.rcParams['font.sans-serif'] = "Calibri"
+from seaborn import heatmap
+
+rcParams['font.family'] = "sans-serif"
+rcParams['font.sans-serif'] = "Calibri"
 
 def format_ax(ax=None, xlabel='Time (s)', ylabel='Power (W)'):
     if not ax:
@@ -298,7 +291,7 @@ def nits_heatmap(light_df):
     format_ax(ax=ax, xlabel='Distance From Left Edget', ylabel='Distance From Bottom Edge')
     a = np.array(light_df).ravel()
     vmax = np.percentile(a, 95)
-    sns.heatmap(light_df, ax=ax, vmin=0, vmax=vmax)
+    heatmap(light_df, ax=ax, vmin=0, vmax=vmax)
     ax.collections[0].colorbar.set_label('Luminance\n(Nits)', fontsize=16)
     y_count, x_count = light_df.shape
     ax.set_xticks(range(0, x_count+1, int(x_count/10)))

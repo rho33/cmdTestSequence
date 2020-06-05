@@ -13,10 +13,10 @@ from functools import partial
 import numpy as np
 import pandas as pd
 from docopt import docopt
-from merge import merge_test_data
 from reportlab.lib.units import inch
 import reportlab_sections as rls
 import plots
+import merge
 
 
 class ISection(rls.Section):
@@ -444,7 +444,7 @@ def main():
 
     test_seq_df = pd.read_csv(paths['test_seq'])
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
-    merged_df = merge_test_data(test_seq_df, data_df)
+    merged_df = merge.merge_test_data(test_seq_df, data_df)
     merged_df.to_csv(Path(data_folder).joinpath('merged.csv'), index=False)
 
     waketimes = get_waketimes(test_seq_df, data_df)
