@@ -1,5 +1,6 @@
 import sys
-from shutil import copyfile, copytree
+import distutils
+from shutil import copyfile, copytree, move
 from cx_Freeze import setup, Executable
 import os
 from zipfile import ZipFile
@@ -55,6 +56,8 @@ setup(  name = "TV Test Report",
         executables = [Executable(r"Report\report.py", base=base), Executable(r"TestSequence\tv_test_sequence.py", base=base)]
         )
 
+
+# distutils.dir_util.copy_tree('build/exe.win-amd64-3.6', 'exe.win-amd64-3.6')
 copyfile(r'TestSequence\test-details.csv', r'build\exe.win-amd64-3.6\test-details.csv')
 copyfile(r'Report\coeffs.csv', r'build\exe.win-amd64-3.6\coeffs.csv')
 copyfile(r'Report\intro-text.csv', r'build\exe.win-amd64-3.6\intro-text.csv')
@@ -66,12 +69,7 @@ else:
     for file in os.listdir(src):
         copyfile(os.path.join(src, file), os.path.join(dst, file))
 
-zipdir('build/exe.win-amd64-3.6', './tv-test-scripts.zip')
+if os.path.isfile(r'build\exe.win-amd64-3.6\lib\scipy\spatial\cKDTree.cp36-win_amd64.pyd'):
+    os.rename(r'build\exe.win-amd64-3.6\lib\scipy\spatial\cKDTree.cp36-win_amd64.pyd', r'build\exe.win-amd64-3.6\lib\scipy\spatial\ckdtree.cp36-win_amd64.pyd')
 
-
-
-os.chdir(r'build\exe.win-amd64-3.6\lib\scipy\spatial')
-filename = 'cKDTree.cp36-win_amd64.pyd'
-if filename in os.listdir():
-    os.rename(filename, 'ckdtree.cp36-win_amd64.pyd')
-
+zipdir(r'build\exe.win-amd64-3.6', 'tv-test-scripts.zip')

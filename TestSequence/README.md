@@ -1,9 +1,6 @@
 # TV Test Sequence Generator CLI
 # Installation
-1. go to https://github.com/pacific-crest-labs/cmdTestSequence/releases
-2. Click on (download) tv_test_sequence.zip from the most recent release. ![installation](images/inked-installation.jpg)
-3. Extract zip file
-4. Call the tv_test_sequence.exe from the command line
+
 
 Don't move the tv_test_sequence.exe file out of its folder. It will not work.
 
