@@ -7,28 +7,25 @@ import tv_test_sequence as tts
 def get_arg_seqs():
     """get all valid argument combinations/sequences"""
     options = {
-        'm': ['--mdd'],
         'h': ['--hdr', 'hdr standard'],
-        'q': ['--qs'],
-        'da': ['--defabc', 'abc standard'],
-        'ba': ['--brabc', 'abc dynamic'],
-        'ha': ['--hdrabc', 'hdr abc standard']
+        'qn': ['--qs', '8'],
+        'qf': ['--qs', '11'],
+        'da': ['--defabc'],
+        'ba': ['--brabc'],
+        'ha': ['--hdrabc']
     }
     seqs = {'base': ['sample model', 'standard', 'dynamic']}
     for i in range(1, len(options) + 1):
         for key_tup in combinations(options.keys(), i):
-            seq_key = '_'.join(list(key_tup))
-            seq = [] + seqs['base']
-            for opt_key in key_tup:
-                seq += options[opt_key]
-            seqs[seq_key] = seq
-    qson_seqs = {}
-    for key, seq in seqs.items():
-        if '--qs' in seq:
-            new_seq = [] + seq + ['--qson']
-            new_key = key + '_qo'
-            qson_seqs[new_key] = new_seq
-    seqs.update(qson_seqs)
+            if 'qn' in key_tup and 'qf' in key_tup:
+                pass
+            else:
+                seq_key = '_'.join(list(key_tup))
+                seq = [] + seqs['base']
+                for opt_key in key_tup:
+                    seq += options[opt_key]
+                seqs[seq_key] = seq
+
     return seqs
 
 
@@ -38,14 +35,12 @@ def test_docopt():
         docopt_args = docopt(tts.__doc__, argv=seq)
         assert isinstance(docopt_args, dict)
         expected_types = {
-            '--brabc': [type(None), str],
-            '--defabc': [type(None), str],
+            '--brabc': [bool],
+            '--defabc': [bool],
             '--hdr': [type(None), str],
-            '--hdrabc': [type(None), str],
+            '--hdrabc': [bool],
             '--help': [bool],
-            '--mdd': [bool],
-            '--qs': [bool],
-            '--qson': [bool],
+            '--qs': [type(None), str],
             '<brightest_pps>': [str],
             '<default_pps>': [str],
             '<model>': [str]
@@ -54,17 +49,15 @@ def test_docopt():
         for arg, val in docopt_args.items():
             assert type(val) in expected_types[arg]
 
-    args = ['some model', 'standard', 'dynamic', '--mdd', '--hdr', 'hdr standard']
+    args = ['some model', 'standard', 'dynamic', '--hdr', 'hdr standard']
     docopt_args = docopt(tts.__doc__, argv=args)
     expected_args = {
-        '--brabc': None,
-        '--defabc': None,
+        '--brabc': False,
+        '--defabc': False,
         '--hdr': 'hdr standard',
-        '--hdrabc': None,
+        '--hdrabc': False,
         '--help': False,
-        '--mdd': True,
-        '--qs': False,
-        '--qson': False,
+        '--qs': None,
         '<brightest_pps>': 'dynamic',
         '<default_pps>': 'standard',
         '<model>': 'some model'
@@ -79,9 +72,7 @@ def test_get_test_order():
         '--hdr': 'hdr standard',
         '--hdrabc': None,
         '--help': False,
-        '--mdd': True,
-        '--qs': False,
-        '--qson': False,
+        '--qs': '8',
         '<brightest_pps>': 'dynamic',
         '<default_pps>': 'standard',
         '<model>': 'some model'
@@ -106,14 +97,12 @@ def test_get_test_order():
     test_order = tts.get_test_order(docopt_args)
     assert test_order == expected_test_order
     docopt_args = {
-        '--brabc': 'abc dynamic',
-        '--defabc': 'abc standard',
+        '--brabc': True,
+        '--defabc': True,
         '--hdr': 'hdr standard',
-        '--hdrabc': 'hdr abc standard',
+        '--hdrabc': True,
         '--help': False,
-        '--mdd': True,
-        '--qs': False,
-        '--qson': False,
+        '--qs': '8',
         '<brightest_pps>': 'dynamic',
         '<default_pps>': 'standard',
         '<model>': 'some model'
@@ -191,7 +180,7 @@ def test_create_test_seq_df():
 
 
 def test_messages():
-    args = ['some model', 'standard', 'dynamic', '--mdd', '--hdr', 'hdr standard']
+    args = ['some model', 'standard', 'dynamic', '--hdr', 'hdr standard']
     docopt_args = docopt(tts.__doc__, argv=args)
     test_order = tts.get_test_order(docopt_args)
     tests = tts.get_tests()
