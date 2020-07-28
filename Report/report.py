@@ -315,7 +315,7 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
     with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
         with persistence_summary.new_section('SDR Persistence') as sdr_persistence:
             pass
-        hdr = True # todo: hdr logic
+        hdr = 'hdr' in merged_df.test_name.unique()
         if hdr:
             with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
                 pass
@@ -384,7 +384,7 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
                 table_df = clean_rsdf(rsdf[rsdf['test_name']=='brightest'])
                 brightest.create_element('table', table_df)
                 brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'brightest'))
-            hdr = True # todo: hdr logic
+
             if hdr:
                 with apl_power.new_section('Default PPS: HDR') as brightest:
                     table_df = clean_rsdf(rsdf[rsdf['test_name'] == 'hdr'])
@@ -432,7 +432,7 @@ def get_input_from_folder(data_folder):
     paths = {}
     data_folder = Path(data_folder)
     paths['test_seq'] = next(data_folder.glob('*test-sequence*.csv'))
-    paths['test_data'] = next(data_folder.glob('*second*.csv'))
+    paths['test_data'] = next(data_folder.glob('*datalog*.csv'))
     paths['lum_profile'] = next(data_folder.glob('*lum profile*.csv'))
     return paths
 
