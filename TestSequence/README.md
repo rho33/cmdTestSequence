@@ -10,55 +10,45 @@ Don't move the tv_test_sequence.exe file out of its folder. It will not work.
 
     tv_test_sequence.exe some_model standard vivid
 
-This would be for a television without abc, mdd, qs, or hdr.
+This would construct a test sequence without abc tests, .
 The model name is some_model. The default pps is standard. The brightest pps is vivid
 
-#### MDD Example:  
-    tv_test_sequence.exe some_model standard vivid --mdd  
 
 #### QS Examples:
 
-    tv_test_sequence.exe some_model standard vivid --qs
-    tv_test_sequence.exe some_model standard vivid --qs --qson
+    tv_test_sequence.exe some_model standard vivid --qs=8
 
-If the TV has quickstart, use --qs.
-If the the tv needs to be standby tested with quickstart on, use both --qs and --qson.
-Using --qs without --qson will default to standby testing with quickstart off.
-Using --qson without --qs will be ignored.
+If the TV has a quickstart feature and defaults to quickstart off, use --qs flag followed by the number of seconds it takes this tv to wake from sleep in its default mode.
+If the the tv doesn't have quickstart or has quickstart and defaults to quickstart on, omit this flag
 
 #### ABC Examples:
 
-    tv_test_sequence.exe some_model standard vivid --defabc standard --brabc  vivid
-    tv_test_sequence.exe some_model standard vivid --defabc standard
+    tv_test_sequence.exe some_model standard vivid --defabc
+    tv_test_sequence.exe some_model standard vivid --defabc --brabc
 
-To test with abc on include --defabc followed by the default pps and --brabc followed by the brightest_pps.
-In most cases this will be the same pps specified in the <default_pps> and <brightest_pps> arguments
-but some TVs only allow ABC functionality in certain pps.
-Using --defabc without --brabc or vice versa is allowed. Test sequence will then only include abc on tests for specified pps.
+Use --defabc to include abc on tests for the default pps and --brabc to include abc on tests for the brightest pps.
 
 #### HDR Examples:
 
-    tv_test_sequence.exe some_model standard vivid --hdr standard
-    tv_test_sequence.exe some_model standard vivid --hdr standard --hdrabc standard
+    tv_test_sequence.exe some_model standard vivid --hdr=standard
+    tv_test_sequence.exe some_model standard vivid --hdr=standard --hdrabc
 
 To include HDR testing use --hdr followed by default hdr pps.
-To include HDR testing with abc on use both  --hdr followed by default hdr pps and --hdrabc followed by default hdr pps.
-Using -hdrabc without --hdr will be ignored.
+To include HDR testing with abc on use --hdr followed by default hdr pps and --hdrabc.
+Using --hdrabc without --hdr=pps will be ignored.
 
 #### Everything Example:
 
-    tv_test_sequence.exe LG_49UM7300 aps vivid --defabc aps --brabc vivid --hdr standard --mdd --qs --qson
+    tv_test_sequence.exe LG_49UM7300 aps vivid --defabc --brabc --hdr=standard --qs=8
   
 Argument Breakdown:
  - (LG_49UM7300) our tv model is LG_49UM7300
  - (aps) its default preset picture setting is aps
  - (vivid) its brightest pps is vivid
- - (--defabc aps) test with abc on in its default abc on pps, aps
- - (--brabc vivid) test with abc on in its brightest pps, vivid
- - (--hdr standard) test with hdr content in default hdr pps, standard
- - (--mdd) tv has motion detection dimming
- - (--qs) tv has quickstart
- - (--qson) test tv with quickstart on for standby tests
+ - (--defabc) test the default pps (aps) with abc on
+ - (--brabc) test the brightest pps (vivid) with abc on
+ - (--hdr=standard) test with hdr content, default hdr pps is standard
+ - (--qs=8) tv has quickstart and defaults to quickstart off, time to wake is 8 seconds
  
 # Output Files
 1. Test Sequence - a csv file where each line is a test and each column is a test detail (feature)
