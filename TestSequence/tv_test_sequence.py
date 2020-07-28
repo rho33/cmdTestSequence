@@ -8,13 +8,11 @@ Arguments:
 
 Options:
   -h --help
-  --defabc=pps  specify default abc on preset picture setting for testing
-  --mdd         tv has mdd
+  --defabc      include abc on tests for default pps
   --hdr=pps     specify hdr preset picture setting for testing
-  --hdrabc=pps  specify hdr preset picture setting for hdr abc testing
-  --brabc=pps   specify "brightest" pps for testing with abc on
-  --qson        standby test with qs on
-  --qs          tv has quickstart
+  --hdrabc      include abc on tests for hdr pps
+  --brabc       include abc on tests for brightest pps
+  --qs=secs     tv has quickstart off by default, number of seconds to wake
 """
 from docopt import docopt
 import pandas as pd
@@ -93,21 +91,23 @@ def create_test_seq_df(tests, test_order, docopt_args):
     for test in test_order:
         df = df.append(tests[test], ignore_index=True)
 
-    if docopt_args['--qson']:
-        df['qs'] = df['qs'].replace({'off': 'on'})
+    # if docopt_args['--qson']:
+    #     df['qs'] = df['qs'].replace({'off': 'on'})
 
     if not docopt_args['--defabc'] and not docopt_args['--brabc'] and not docopt_args['--hdrabc']:
         del df['abc'], df['lux']
-    if not docopt_args['--mdd']:
-        del df['mdd']
-    if not docopt_args['--qs']:
-        del df['qs']
+    # if not docopt_args['--mdd']:
+    #     del df['mdd']
+    if not docopt_args['--qs'] or float(docopt_args['--qs']) > 10:
+        df['qs'] = df['qs'].replace('oob', 'on')
+    else:
+        df['qs'] = df['qs'].replace('oob', 'off')
 
     rename_pps = {
         'default': docopt_args['<default_pps>'],
         'brightest': docopt_args['<brightest_pps>'],
         'hdr_default': docopt_args['--hdr'],
-        'abc_default': docopt_args['--defabc']
+        'abc_default': docopt_args['<default_pps>']
     }
     df['preset_picture'] = df['preset_picture'].replace(rename_pps)
     df.index = range(1, len(df)+1)
@@ -123,7 +123,10 @@ def display_row_settings(row):
     for setting, val in zip(display_row.index, display_row):
         if setting == 'Illuminance Level (Lux)':
             val = int(val)
-        s += f'    {setting} - {val}\\n'
+        s += f'    {setting} - {val}'
+        if setting == RENAME_DICT['mdd']:
+            s += ' (if applicable)'
+        s += '\\n'
     return s
 
 
@@ -150,7 +153,10 @@ def message_instructions(current_row, previous_row=None, extra=None):
         changes = current_row[(current_row != previous_row) & pd.notnull(current_row)]
         for col, change_val in changes.iteritems():
             if col in setting_titles.keys():
-                message += f'* Change the {setting_titles[col]} setting to {change_val}\\n'
+                message += f'* Change the {setting_titles[col]} setting to {change_val}'
+                if col == 'mdd':
+                    message += ' (if applicable)'
+                message += '\\n'
             elif col == 'lux':
                 message += f'* Adjust the illuminance level to {int(change_val)} lux\\n'
             elif col == 'video':
@@ -215,7 +221,10 @@ def standby_message(row):
     if 'google' in row['test_name']:
         message += '* Connect the TV to the Google Home\\n'
     if 'qs' in row.index:
-        message += f'* Ensure that QuckStart is set to {RENAME_DICT[row["qs"]]}.\\n'
+        message += f'* Ensure that QuckStart is set to {RENAME_DICT[row["qs"]]}'
+        if row['qs']=='off':
+            message+= ' (if applicable)'
+        message += '.\\n'
     message += "* Power down the TV using the remote and press the OK button to begin test."
     return message
 
@@ -281,7 +290,16 @@ def archive(filepath, copy=True, date=False):
 
 
 def main():
+    
+    # write to args.txt for debugging purposes.
+    with open('args.txt', 'w') as f:
+        f.write(str(sys.argv))
     docopt_args = docopt(__doc__)
+    
+    with open('args.txt', 'w') as f:
+        f.write(str(sys.argv))
+        f.write(str(docopt_args))
+
     test_order = get_test_order(docopt_args)
     tests = get_tests()
     test_seq_df = create_test_seq_df(tests, test_order, docopt_args)
