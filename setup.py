@@ -38,9 +38,9 @@ def zipdir(directory, destination=None):
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
-    # "packages": ['scipy'],
+    "path": sys.path + ['TestSequence'],
     "includes": ['pandas', 'docopt','matplotlib', 'matplotlib.backends.backend_tkagg', 'seaborn', 'scipy.ndimage._ni_support',
-                 'seaborn.cm', 'scipy', 'scipy.spatial.ckdtree', 'scipy.sparse.csgraph._validation'],
+                 'seaborn.cm', 'scipy', 'scipy.spatial.ckdtree', 'scipy.sparse.csgraph._validation', 'TestSequence/sequence'],
 }
 
 # GUI applications require a different base on Windows (the default is for a
@@ -53,12 +53,17 @@ setup(  name = "TV Test Report",
         version = "0.1",
         description = 'Creates pdf report from test results',
         options = {"build_exe": build_exe_options},
-        executables = [Executable(r"Report\report.py", base=base), Executable(r"TestSequence\tv_test_sequence.py", base=base)]
+        executables = [Executable(r"Report\report.py", base=base),
+                       Executable(r"TestSequence\main_sequence.py", base=base),
+                       Executable(r"TestSequence\pcl_sequence.py", base=base),
+                       Executable(r"TestSequence\repair_sequence.py", base=base),
+                       ]
         )
 
 
 # distutils.dir_util.copy_tree('build/exe.win-amd64-3.6', 'exe.win-amd64-3.6')
 copyfile(r'TestSequence\test-details.csv', r'build\exe.win-amd64-3.6\test-details.csv')
+copyfile(r'TestSequence\entry-forms.xlsx', r'build\exe.win-amd64-3.6\entry-forms.xlsx')
 copyfile(r'Report\coeffs.csv', r'build\exe.win-amd64-3.6\coeffs.csv')
 copyfile(r'Report\intro-text.csv', r'build\exe.win-amd64-3.6\intro-text.csv')
 

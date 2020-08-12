@@ -453,9 +453,19 @@ def main():
 
     light_df = pd.read_csv(paths['lum_profile'], header=None)
 
-    def power_limit(area, luminance, sf, a, b, c, d, e, f):
-        return sf * ((a * area + b) * (e * luminance + f) + c * area + d)
+    def power_limit(area, luminance, sf, a, b, c, d, e, f, power_cap=None):
+        limit = sf * ((a * area + b) * (e * luminance + f) + c * area + d)
+        if power_cap is not None:
+            return min(limit, power_cap)
+        else:
+            return limit
+        
     coeffs = pd.read_csv(Path(sys.path[0]).joinpath('coeffs.csv'), index_col='coef').to_dict()
+    # todo: change power cap with cli option (probably an estar vs va option)
+    power_cap = True
+    if not power_cap:
+        del coeffs['power_cap']
+    
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
 
     make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs)

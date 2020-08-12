@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams, transforms
 import matplotlib.lines as mlines
 from seaborn import heatmap
+from functools import partial
 
 rcParams['font.family'] = "sans-serif"
 rcParams['font.sans-serif'] = "Calibri"
@@ -211,7 +212,7 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
 
     points = get_points(pps, rsdf)
 
-    limit_func = {'default': limit_funcs['default'], 'brightest': limit_funcs['brightest'], 'hdr': limit_funcs['hdr']}.get(pps)
+    limit_func = limit_funcs.get(pps)
 
     fig, ax = plt.subplots(figsize=(10, 10))
     format_ax(ax=ax, xlabel='Luminance (Nits)', ylabel='Power (W)')
@@ -237,19 +238,20 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
 
     abc_on_lums = [point[0] for label, point in points.items() if label != 'ABC Off']
     abc_on_power = [point[1] for label, point in points.items() if label != 'ABC Off']
-    lum_avg = np.mean(abc_on_lums)
-    power_avg = np.mean(abc_on_power)
-    abc_on = (lum_avg, power_avg)
+
+
+    abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
     measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
     plt.plot(*measured, marker='o', color='black', markersize=markersize)
     handle = mlines.Line2D([], [], linewidth=0, label='Measured', marker='.', markersize=markersize, color='black')
     handles.append(handle)
 
     min_lum, max_lum = 0, max(lums) * 1.25
-    y1 = limit_func(area=area, luminance=min_lum)
-    y2 = limit_func(area=area, luminance=max_lum)
-    xs, ys = (min_lum, max_lum), (y1, y2)
+    
+    xs = np.arange(min_lum, max_lum, .1)
+    ys = [limit_func(area=area, luminance=i) for i in xs]
     plt.plot(xs, ys, color='tab:orange')
+        
     screen_size = 55 # todo: implement screen size
     handle = mlines.Line2D([], [], linewidth=1, label=f'{screen_size}" Limit', color='tab:orange')
     handles.append(handle)
