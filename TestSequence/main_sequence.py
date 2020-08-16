@@ -1,5 +1,5 @@
 """Usage:
-tv_test_sequence.exe  <model> <default_pps> <brightest_pps> [options]
+main_sequence.exe  <model> <default_pps> <brightest_pps> [options]
 
 Arguments:
   model             tv model code
@@ -24,7 +24,6 @@ import logfuncs as lf
 
 def get_test_order(docopt_args, ccf_pps_list):
     """Determine test order from option arguments."""
-
     test_order = ts.setup_tests(ccf_pps_list)
     abc_def_tests = {
         True: ['default', 'default_100', 'default_35', 'default_12', 'default_3'],
@@ -64,7 +63,6 @@ def main():
     data_folder.mkdir(exist_ok=True)
     
     lf.add_logfile(logger, data_folder.joinpath('main-sequence.log'))
-    
     logger.info(str(sys.argv))
     logger.info(docopt_args)
     
@@ -80,17 +78,10 @@ def main():
         'hdr10_default': docopt_args['--hdr'],
         'abc_default': docopt_args['<default_pps>']
     }
-    
     qson = not docopt_args['--qs'] or float(docopt_args['--qs']) >= 10
     test_seq_df = ts.create_test_seq_df(test_order, rename_pps, qson)
     logger.info('\n' + test_seq_df.to_string())
-    
-    # if not docopt_args['--qs'] or float(docopt_args['--qs']) > 10:
-    #     test_seq_df['qs'] = test_seq_df['qs'].replace('oob', 'on')
-    # else:
-    #     test_seq_df['qs'] = test_seq_df['qs'].replace('oob', 'off')
     command_df = cs.create_command_df(test_seq_df)
-
     ts.save_sequences(test_seq_df, command_df, data_folder)
 
 

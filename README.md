@@ -1,5 +1,5 @@
 # TV Test Scripts
-[Test Sequence Generator](TestSequence/README.md) - for use prior to start of tests
+[Test Sequence Generator](TestSequence/Archive/README.md) - for use prior to start of tests
 
 [Report Generator](Report/README.md) - for use after completion of tests
 

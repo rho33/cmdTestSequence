@@ -1,9 +1,10 @@
 """Usage:
-repair_test_sequence.exe <data_folder> <test_tags>...
+repair_sequence.exe <data_folder> <test_tags>...
 """
 import sys
 from docopt import docopt
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import sequence as ts
 import command_sequence as cs
@@ -65,6 +66,11 @@ def main():
     qson = (og_test_seq_df['qs'] == 'on').any()
     test_seq_df = ts.create_test_seq_df(test_order, rename_pps, qson)
     test_seq_df.index = range(len(test_seq_df))
+    tag_to_name = dict(zip(og_test_seq_df['tag'], og_test_seq_df['test_name']))
+    repair_tags = {tag_to_name[int(tag)]: f"{tag} repair" for tag in tags}
+    test_seq_df['tag'] = np.where(test_seq_df['test_name'].isin(repair_tags),
+                                  test_seq_df['test_name'].apply(repair_tags.get),
+                                  test_seq_df['tag'])
     logger.info('\n' + test_seq_df.to_string())
     
     command_df = cs.create_command_df(test_seq_df)

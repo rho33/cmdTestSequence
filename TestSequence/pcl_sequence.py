@@ -1,7 +1,7 @@
 """Usage:
 pcl_sequence.exe <data_folder>
 """
-
+from functools import partial
 import pandas as pd
 import sys
 import shutil
@@ -9,18 +9,21 @@ from pathlib import Path
 import PySimpleGUI as sg
 import os
 from docopt import docopt
-
 import sequence as ts
 import command_sequence as cs
 import logfuncs as lf
+sys.path.append('..')
+from error_popups import error_popup
 
 
-CCF_PPS_LIST = ['default']
-
-
+blank_entry_msg = lambda path, entry: f'Error in {path}\n\n"{entry}" cannot be blank.\nPress OK when error has been corrected.\nRemember to save.'
+    
+    
 def get_test_order(pps_df):
-
-    test_order = ts.setup_tests(CCF_PPS_LIST)
+    ccf_pps_list = ['default', 'brightest']
+    if pd.notna(pps_df.loc['hdr10', 'pps_name']):
+        ccf_pps_list += ['hdr10_default']
+    test_order = ts.setup_tests(ccf_pps_list)
     test_order += [
         'default',
         'default_3bar',
@@ -51,20 +54,6 @@ def get_test_order(pps_df):
         'google_waketime',
     ]
     return test_order
-
-
-def gui_window():
-    layout = [
-        [sg.Text('TV Model')],
-        [sg.InputText(key='model')],
-        [sg.Text('Destination Folder')],
-        [sg.Input(key='destination_folder'), sg.FolderBrowse()],
-        [sg.Submit()]
-    ]
-    window = sg.Window('Test Sequence Input').Layout(layout)
-    _, values = window.Read()
-    window.close()
-    return values
 
 
 def get_pps_df(path):
@@ -106,11 +95,14 @@ def get_pps_df(path):
         'pps12': 'pps12'
     }
     
-    # path = 'C:\\Users\\rhohe\\Documents\\JupyterScratch\\Samsung_666\\Samsung666-entry-forms.xlsx'
     df = pd.read_excel(path, sheet_name='PPS', index_col=0)
-    
     df = df.dropna(subset=['PPS Name']).replace({'y': True, 'n': False})
-    df = df.rename(columns={'PPS Name': 'pps_name', 'ABC Enabled Y/N': 'abc'}, index=base_tests)
+    
+    for pps in ['Default SDR PPS', 'Brightest SDR PPS']:
+        if pps not in df.index:
+            error_popup(blank_entry_msg(path, pps), partial(get_pps_df, path=path))
+
+    df = df.rename(columns={'PPS Name': 'pps_name', 'ABC Enabled By Default (Y/N)': 'abc'}, index=base_tests)
     df['pps_labels'] = pd.Series(df.index, index=df.index).apply(pps_labels.get)
     return df
 
@@ -118,10 +110,23 @@ def get_pps_df(path):
 def get_qson(path):
     df = pd.read_excel(path, sheet_name='Misc', index_col=0)
     df.columns = ['entry']
-    df = df.replace({'y': True, 'n': False})
-    qson_def = df.loc['Does QS default to On', 'entry']
-    qs_10 = df.loc['Does QS require ≥ 10 sec to wake and display HDMI signal?', 'entry']
-    return qson_def or qs_10
+    df['entry'] = df['entry'].astype(object)
+    df = df.replace({'Yes': True, 'No': False})
+    
+    def check_entry(idx):
+        entry = df.loc[idx, 'entry']
+        if pd.isnull(entry):
+            ts.error_popup(blank_entry_msg(path, idx), partial(get_qson, path))
+        return entry
+    
+    has_qs = check_entry('Does TV have QS?')
+    if has_qs:
+        qsoff_def = check_entry('Does QS default to Off?')
+        qs_secs = check_entry('If so, how many seconds does it take to wake to HDMI signal?')
+        qs_10 = qs_secs >= 10
+        return qsoff_def and qs_10
+    else:
+        return False
     
     
 def main():
@@ -134,6 +139,7 @@ def main():
     # data_folder = destination_folder.joinpath(values['model'])
     data_folder = Path(docopt_args['<data_folder>'])
     data_folder.mkdir(exist_ok=True)
+    lf.add_logfile(logger, data_folder.joinpath('pcl-sequence.log'))
     entry_forms_template = Path(sys.path[0]).joinpath('entry-forms.xlsx')
     entry_forms = Path(data_folder).joinpath("entry-forms.xlsx")
     
