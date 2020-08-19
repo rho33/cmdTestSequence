@@ -17,5 +17,4 @@ def permission_popup(func):
         except PermissionError as e:
             msg = f'{e}\n\nClose the file referenced above and press OK to continue'
             error_popup(msg, partial(wrapper, *args, **kwargs), exception=e)
-    
     return wrapper

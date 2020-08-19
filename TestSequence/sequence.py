@@ -1,12 +1,10 @@
 """Functions used in multiple test sequence scripts."""
 import sys
 import shutil
-from functools import partial
 import pandas as pd
 from pathlib import Path
-import PySimpleGUI as sg
 sys.path.append('..')
-from archive import archive
+from filefuncs import archive
 from error_popups import permission_popup
 
 

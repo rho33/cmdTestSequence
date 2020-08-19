@@ -12,11 +12,13 @@ from pathlib import Path
 from functools import partial
 import numpy as np
 import pandas as pd
-from docopt import docopt
 from reportlab.lib.units import inch
 import reportlab_sections as rls
 import plots
 import merge
+sys.path.append('..')
+import logfuncs as lf
+import filefuncs as ff
 
 
 class ISection(rls.Section):
@@ -150,7 +152,8 @@ def get_test_specs_df(merged_df, data_folder):
     return test_specs_df
 
 
-def get_on_mode_df(rsdf, limit_funcs, area):
+def get_on_mode_df(rsdf, limit_funcs, area, estar):
+    # todo implement estar boolean
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
     def add_pps_tests(on_mode_df, cdf, abc_off_test, abc_on_tests, limit_func):
         on_mode_df = on_mode_df.append(cdf.loc[abc_off_test])
@@ -294,6 +297,7 @@ def title_page(canvas, doc):
 def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
     """Create the pdf report from the test data."""
     report = ISection(name='report')
+    estar = 'ENERGYSTAR' in data_folder
     # Test Specifics section displays test metadata and tv specs in table
     with report.new_section('Test Specifics') as test_specs:
         test_specs_df = get_test_specs_df(merged_df, data_folder)
@@ -320,16 +324,19 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
             with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
                 pass
 
-    with report.new_section('DOE Test Results Summary') as doe:
-        pass
-
     with report.new_section('Compliance with Additional Tests', page_break=False) as cat:
         with cat.new_section('On Mode Tests') as on_mode_tests:
             # add on mode table
-            on_mode_df, style = get_on_mode_df(rsdf, limit_funcs, area)
+            on_mode_df, style = get_on_mode_df(rsdf, limit_funcs, area, estar)
             table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
             on_mode_tests.create_element('on mode table', table_df, grid_style=style)
-            on_mode_tests.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
+            if estar:
+                # todo: implement estar text
+                #   probably dependent on how get_on_mode_df implements
+                #   potentially include within same function
+                pass
+            else:
+                on_mode_tests.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
 
             # display power limit functions below on mode table
             def get_func_str(limit_func):
@@ -427,20 +434,10 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
     doc.multiBuild(report.story())
 
 
-def get_input_from_folder(data_folder):
-    """Given the directory, find the correct files based on keywords within the file names and return as a dictionary."""
-    paths = {}
-    data_folder = Path(data_folder)
-    paths['test_seq'] = next(data_folder.glob('*test-sequence*.csv'))
-    paths['test_data'] = next(data_folder.glob('*datalog*.csv'))
-    paths['lum_profile'] = next(data_folder.glob('*lum profile*.csv'))
-    return paths
-
-
 def main():
-    docopt_args = docopt(__doc__)
-    data_folder = docopt_args['<data_folder>']
-    paths = get_input_from_folder(data_folder)
+    logger, docopt_args, data_folder = lf.start_script(__doc__, 'report.log')
+    
+    paths = ff.get_paths(data_folder)
 
     test_seq_df = pd.read_csv(paths['test_seq'])
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
@@ -459,13 +456,9 @@ def main():
             return min(limit, power_cap)
         else:
             return limit
-        
     coeffs = pd.read_csv(Path(sys.path[0]).joinpath('coeffs.csv'), index_col='coef').to_dict()
-    # todo: change power cap with cli option (probably an estar vs va option)
-    power_cap = True
-    if not power_cap:
+    if not estar:
         del coeffs['power_cap']
-    
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
 
     make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs)

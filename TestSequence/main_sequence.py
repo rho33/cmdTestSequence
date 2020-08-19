@@ -1,5 +1,5 @@
 """Usage:
-main_sequence.exe  <model> <default_pps> <brightest_pps> [options]
+main_sequence.exe  <data_folder> <default_pps> <brightest_pps> [options]
 
 Arguments:
   model             tv model code
@@ -19,6 +19,7 @@ from docopt import docopt
 from pathlib import Path
 import sequence as ts
 import command_sequence as cs
+sys.path.append('..')
 import logfuncs as lf
 
 
@@ -55,16 +56,7 @@ def get_test_order(docopt_args, ccf_pps_list):
 
 
 def main():
-    logger = lf.cwd_logger('main-sequence.log')
-    logger.info(str(sys.argv))
-    
-    docopt_args = docopt(__doc__)
-    data_folder = Path(docopt_args['<model>'])
-    data_folder.mkdir(exist_ok=True)
-    
-    lf.add_logfile(logger, data_folder.joinpath('main-sequence.log'))
-    logger.info(str(sys.argv))
-    logger.info(docopt_args)
+    logger, docopt_args, data_folder = lf.start_script(__doc__, 'main-sequence.log')
     
     ccf_pps_list = ['default', 'brightest']
     if docopt_args['--hdr']:

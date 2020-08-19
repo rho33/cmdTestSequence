@@ -11,8 +11,9 @@ import os
 from docopt import docopt
 import sequence as ts
 import command_sequence as cs
-import logfuncs as lf
+
 sys.path.append('..')
+import logfuncs as lf
 from error_popups import error_popup
 
 
@@ -130,16 +131,8 @@ def get_qson(path):
     
     
 def main():
-    logger = lf.cwd_logger('pcl-sequence.log')
-    # values = gui_window()
-    docopt_args = docopt(__doc__)
-    logger.info(docopt_args)
-    
-    # destination_folder = Path(values['destination_folder'])
-    # data_folder = destination_folder.joinpath(values['model'])
-    data_folder = Path(docopt_args['<data_folder>'])
-    data_folder.mkdir(exist_ok=True)
-    lf.add_logfile(logger, data_folder.joinpath('pcl-sequence.log'))
+    logger, docopt__args, data_folder = lf.start_script(__doc__, 'pcl-sequence.log')
+
     entry_forms_template = Path(sys.path[0]).joinpath('entry-forms.xlsx')
     entry_forms = Path(data_folder).joinpath("entry-forms.xlsx")
     

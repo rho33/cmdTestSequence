@@ -8,17 +8,9 @@ import numpy as np
 import pandas as pd
 import sequence as ts
 import command_sequence as cs
+sys.path.append('..')
+from filefuncs import get_paths
 import logfuncs as lf
-
-
-def get_input_from_folder(data_folder):
-    """Given the directory, find the correct files based on keywords within the file names and return as a dictionary."""
-    paths = {}
-    data_folder = Path(data_folder)
-    paths['test_seq'] = next(data_folder.glob('*test-sequence*.csv'))
-    # paths['test_data'] = next(data_folder.glob('*datalog*.csv'))
-    # paths['lum_profile'] = next(data_folder.glob('*lum profile*.csv'))
-    return paths
 
 
 def get_test_order(og_test_seq_df, tags):
@@ -42,21 +34,13 @@ def recreate_rename_pps(test_seq_df, tests):
 
 
 def main():
-    
-    logger = lf.cwd_logger('repair-sequence.log')
-    logger.info(sys.argv)
-    
-    docopt_args = docopt(__doc__)
-    data_folder = Path(docopt_args['<data_folder>'])
-    repair_folder = Path(docopt_args['<data_folder>']).joinpath('Repair')
+    logger, docopt_args, data_folder = lf.start_script(__doc__, 'repair-sequence.log')
+
+    repair_folder = data_folder.joinpath('Repair')
     repair_folder.mkdir(exist_ok=True)
-    lf.add_logfile(logger, repair_folder.joinpath('repair-sequence.log'))
-    logger.info(str(sys.argv))
-    logger.info(docopt_args)
-    
     
     tags = docopt_args['<test_tags>']
-    paths = get_input_from_folder(data_folder)
+    paths = get_paths(data_folder)
     logger.info(paths)
     
     og_test_seq_df = pd.read_csv(paths['test_seq'])
@@ -75,6 +59,8 @@ def main():
     
     command_df = cs.create_command_df(test_seq_df)
     ts.save_sequences(test_seq_df, command_df, data_folder, repair=True)
+    
+    # todo: call do_repair
     
 
 if __name__ == '__main__':
