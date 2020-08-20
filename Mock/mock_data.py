@@ -103,7 +103,7 @@ def gui_window():
 
 
 def main():
-    apl_folder = r"..\Report\APL"
+    apl_folder = r"APL"
     values = gui_window()
     test_seq_df = pd.read_csv(values['test_seq'])
     df = get_mock_df(test_seq_df, apl_folder)
