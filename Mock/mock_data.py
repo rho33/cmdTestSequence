@@ -122,12 +122,16 @@ def main():
         values = gui_window()
         test_seq_df = pd.read_csv(values['test_seq'])
         data_folder = Path(values['test_seq']).parent
+    repair = 'Repair' in str(data_folder)
     apl_folder = r"APL"
-    df = get_mock_df(test_seq_df, apl_folder, repair='Repair' in str(data_folder))
+    df = get_mock_df(test_seq_df, apl_folder, repair)
     save_path = data_folder.joinpath('mock-datalog.csv')
     df.to_csv(str(save_path), index=False)
-    lum_save_path = save_path.parent.joinpath('mock_lum profile.csv')
-    shutil.copyfile(src=Path(sys.path[0]).joinpath('mock_lum profile.csv'), dst=lum_save_path)
+    if not repair:
+        lum_save_path = save_path.parent.joinpath('mock_lum profile.csv')
+        shutil.copyfile(src=Path(sys.path[0]).joinpath('mock_lum profile.csv'), dst=lum_save_path)
+        metadata_save_path = save_path.parent.joinpath('mock-test-metadata.csv')
+        shutil.copyfile(src=Path(sys.path[0]).joinpath('mock-test-metadata.csv'), dst=metadata_save_path)
 
 
 if __name__ == '__main__':
