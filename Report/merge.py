@@ -91,15 +91,17 @@ def merge_test_data(test_seq_df, data_df):
     Merges test output data, test sequence data, and APL data
     into a single cleaned csv ready to be used in data report script.
     """
-    data_df['time'] = data_df['Timestamp'].apply(round_time)
-    data_df = data_df.drop_duplicates(subset=['time']).reset_index()[['time', 'Power', 'Luminance', 'Tag']]
-    data_df = data_df.dropna(subset=['Tag'])
-    data_df['Tag'] = data_df['Tag'].apply(clean_tag)
-    data_df = data_df.dropna(subset=['Tag'])
-    test_seq_df = add_stab_tests(test_seq_df, data_df)
-    data_df.columns = ['time', 'watts', 'nits', 'tag']
-    data_df = data_df.merge(test_seq_df, on='tag', how='left')
-    data_df = cut_off_intros(data_df)
-    data_df = add_apl_data(data_df)
-    return data_df
+    merged_df = data_df.copy()
+    merged_df['time'] = merged_df['Timestamp'].apply(round_time)
+    merged_df = merged_df.drop_duplicates(subset=['time'])
+    merged_df = merged_df.reset_index()[['time', 'Power', 'Luminance', 'Tag']]
+    merged_df = merged_df.dropna(subset=['Tag'])
+    merged_df['Tag'] = merged_df['Tag'].apply(clean_tag)
+    merged_df = merged_df.dropna(subset=['Tag'])
+    test_seq_df = add_stab_tests(test_seq_df, merged_df)
+    merged_df.columns = ['time', 'watts', 'nits', 'tag']
+    merged_df = merged_df.merge(test_seq_df, on='tag', how='left')
+    merged_df = cut_off_intros(merged_df)
+    merged_df = add_apl_data(merged_df)
+    return merged_df
 
