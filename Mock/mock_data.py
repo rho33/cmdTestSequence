@@ -1,9 +1,16 @@
+"""Usage:
+mock_data.py
+mock_data.py <data_folder>
+"""
 import sys
 import shutil
 from pathlib import Path
 import pandas as pd
 import numpy as np
 import PySimpleGUI as sg
+from docopt import docopt
+sys.path.append('..')
+import filefuncs as ff
 
 
 def get_intro_df(tag):
@@ -103,11 +110,18 @@ def gui_window():
 
 
 def main():
+    docopt_args = docopt(__doc__)
+    if docopt_args['<data_folder>']:
+        data_folder = Path(docopt_args['<data_folder>'])
+        paths = ff.get_paths(data_folder)
+        test_seq_df = pd.read_csv(paths['test_seq'])
+    else:
+        values = gui_window()
+        test_seq_df = pd.read_csv(values['test_seq'])
+        data_folder = Path(values['test_seq']).parent
     apl_folder = r"APL"
-    values = gui_window()
-    test_seq_df = pd.read_csv(values['test_seq'])
     df = get_mock_df(test_seq_df, apl_folder)
-    save_path = Path(values['test_seq']).parent.joinpath('mock-datalog.csv')
+    save_path = data_folder.joinpath('mock-datalog.csv')
     df.to_csv(str(save_path), index=False)
     lum_save_path = save_path.parent.joinpath('mock_lum profile.csv')
     shutil.copyfile(src=Path(sys.path[0]).joinpath('mock_lum profile.csv'), dst=lum_save_path)
