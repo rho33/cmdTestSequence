@@ -8,7 +8,6 @@ import shutil
 from pathlib import Path
 import PySimpleGUI as sg
 import os
-from docopt import docopt
 import sequence as ts
 import command_sequence as cs
 

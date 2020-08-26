@@ -23,7 +23,7 @@ RENAME_DICT = {
     'on': 'On',
 }
 
-
+# todo: manual sequence custom message
 def display_row_settings(row):
     non_setting_cols = ['special_commands', 'tag', 'test_name', 'test_time']
     display_row = row.drop(non_setting_cols).dropna().rename(RENAME_DICT).replace(RENAME_DICT)
