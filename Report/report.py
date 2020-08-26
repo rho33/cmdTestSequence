@@ -1,21 +1,23 @@
 """Usage:
-report.exe  <data_folder>
+report.exe  <data_folder> [options]
 
 Arguments:
   data_folder       folder with test data, also destination folder
 
 Options:
   -h --help
+  -e
+  -v
+  -p
 """
 import sys
 from pathlib import Path
-from functools import partial
 import numpy as np
 import pandas as pd
 from reportlab.lib.units import inch
 import reportlab_sections as rls
 import plots
-import merge
+from report_data import get_report_data
 sys.path.append('..')
 import logfuncs as lf
 import filefuncs as ff
@@ -37,25 +39,6 @@ class ISection(rls.Section):
         new_section.elements['title'] = rls.Element.from_content(title, heading=True, numbering=numbering, level=self.depth + 1)
         new_section.insert_intro_text()
         return new_section
-
-
-def get_results_summary_df(merged_df, waketimes):
-    """Create a dataframe with one line per test showing test info and test results (average watts and nits)."""
-    rsdf = merged_df.groupby(['tag']).first()
-    cols = ['test_name', 'test_time', 'preset_picture', 'video', 'mdd', 'abc', 'lux', 'qs']
-    cols = [col for col in cols if col in rsdf.columns]
-    rsdf = rsdf[cols]
-    avg_cols = ['watts', 'nits', "APL'"]
-    rsdf = pd.concat([rsdf, merged_df.groupby(['tag']).mean()[avg_cols]], axis=1)
-    rsdf['waketime'] = rsdf['test_name'].apply(waketimes.get)
-
-    for i, row in rsdf.reset_index().iterrows():
-        if 'standby' in row['test_name']:
-            last20_df = merged_df[merged_df['tag'] == row['tag']].iloc[-20 * 60]
-            for col in ['watts', 'nits']:
-                rsdf.loc[row['tag'], col] = last20_df[col].mean()
-
-    return rsdf
 
 
 def clean_rsdf(rsdf, cols=None):
@@ -117,148 +100,6 @@ def clean_rsdf(rsdf, cols=None):
     return cdf
 
 
-def get_waketimes(test_seq_df, data_df):
-    """Calculate wake times from the test data and return as a dictionary."""
-    waketimes = {}
-    for _, row in test_seq_df.iterrows():
-        if 'waketime' in row['test_name']:
-            standby_tag = row['tag'] - 1
-            standby_test = test_seq_df.query('tag==@standby_tag')['test_name'].iloc[0]
-            wt_tag = row['tag'] + .1
-            waketime = len(data_df.query('Tag==@wt_tag'))
-            waketimes[standby_test] = waketime
-    return waketimes
-
-
-def get_test_specs_df(merged_df, data_folder):
-    """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
-    test_specs_df = pd.read_csv(Path(data_folder).joinpath('test-metadata.csv'), header=None, index_col=0)
-    test_specs_df.columns = [0]
-
-    start_date = pd.to_datetime(merged_df['time']).min().date()
-    start_time = pd.to_datetime(merged_df['time']).min().time()
-    end_time = pd.to_datetime(merged_df['time']).max().time()
-    duration = pd.to_datetime(merged_df['time']).max() - pd.to_datetime(merged_df['time']).min()
-    data = {
-        'Test Start Date': start_date,
-        'Test Start Time': start_time,
-        'Test End Time': end_time,
-        'Test Duration': duration
-    }
-
-    beginning_rows = pd.DataFrame.from_dict(data, orient='index')
-    test_specs_df = pd.concat([beginning_rows, test_specs_df])
-
-    return test_specs_df
-
-
-def get_on_mode_df(rsdf, limit_funcs, area, estar):
-    # todo implement estar boolean
-    """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
-    def add_pps_tests(on_mode_df, cdf, abc_off_test, abc_on_tests, limit_func):
-        on_mode_df = on_mode_df.append(cdf.loc[abc_off_test])
-
-        abc_off_pwr = on_mode_df.loc[abc_off_test, 'watts']
-        abc_off_lum = on_mode_df.loc[abc_off_test, 'nits']
-        if abc_on_tests:
-            for test in abc_on_tests:
-                on_mode_df = on_mode_df.append(cdf.loc[test])
-            abc_on_pwr = on_mode_df.loc[abc_on_tests, 'watts'].mean()
-            abc_on_lum = on_mode_df.loc[abc_on_tests, 'nits'].mean()
-            measured = {
-                'nits': np.mean([abc_on_lum, abc_off_lum]),
-                'watts': np.mean([abc_on_pwr, abc_off_pwr])
-            }
-        else:
-            measured = {
-                'nits': np.mean(abc_off_lum),
-                'watts': np.mean(abc_off_pwr)
-            }
-        measured_name = f'{abc_off_test}_measured'
-        on_mode_df = on_mode_df.append(pd.Series(data=measured, name=measured_name))
-        limit = limit_func(area=area, luminance=on_mode_df.loc[measured_name, 'nits'])
-        on_mode_df.loc[measured_name, 'limit'] = limit
-        return on_mode_df
-
-    cdf = rsdf.set_index('test_name')
-    on_mode_df = cdf.drop(cdf.index)
-
-    def_abc_tests = [test for test in ['default_100', 'default_35', 'default_12', 'default_3'] if test in cdf.index]
-    on_mode_df = add_pps_tests(on_mode_df, cdf, 'default', def_abc_tests, limit_funcs['default'])
-
-    br_abc_tests = [test for test in ['brightest_100', 'brightest_35', 'brightest_12', 'brightest_3'] if
-                    test in cdf.index]
-    on_mode_df = add_pps_tests(on_mode_df, cdf, 'brightest', br_abc_tests, limit_funcs['brightest'])
-
-    if 'hdr' in cdf.index:
-        hdr_abc_tests = [test for test in ['hdr_100', 'hdr_35', 'hdr_12', 'hdr_3'] if test in cdf.index]
-        on_mode_df = add_pps_tests(on_mode_df, cdf, 'hdr', hdr_abc_tests, limit_funcs['hdr'])
-
-    on_mode_df = on_mode_df.reset_index()
-    on_mode_df['ratio'] = on_mode_df['watts']/on_mode_df['limit']
-    data = {'test_name': 'average_measured', 'ratio': on_mode_df['ratio'].mean()}
-    on_mode_df = on_mode_df.append(data, ignore_index=True)
-    cols = ['test_name', 'preset_picture', 'abc', 'lux', 'mdd', 'nits', 'limit', 'watts', 'ratio']
-    cols = [col for col in cols if col in on_mode_df.columns]
-    on_mode_df = on_mode_df[cols]
-
-
-
-
-    style = [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
-    for i, val in enumerate(on_mode_df['ratio']<1):
-        if val:
-            color = 'green'
-            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
-        elif pd.notnull(on_mode_df['limit'].iloc[i]):
-            color = 'red'
-            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
-
-    style += [
-        #     ('BACKGROUND', (-1, 1), (-1, 1), 'red'),
-        ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
-        ('BOX', (0, 0), (-1, -1), 1.0, 'black'),
-        #     ('BOX', (0, 1), (-1, 6), 1.0, 'black'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (1, 0), (-1, -1), 'CENTER')
-    ]
-    break_lines = [i + 1 for i, test_name in on_mode_df['test_name'].iteritems() if 'measured' in test_name]
-    for i in break_lines:
-        style.append(('BOX', (0, 1), (-1, i), 1.0, 'black'))
-    return on_mode_df, style
-
-
-def get_standby_df(rsdf):
-    """Create a dataframe and corresponding reportlab TableStyle data which displays the results of standby testing."""
-    standby_df = rsdf[rsdf['test_name'].apply(lambda x: 'standby' in x)].copy()
-    standby_df['limit'] = 2
-    cols = ['test_name', 'qs', 'waketime', 'limit', 'watts']
-    cols = [col for col in cols if col in standby_df.columns]
-    standby_df = standby_df.reset_index()[cols]
-
-    style = []
-    for i, val in enumerate(standby_df['watts']<standby_df['limit']):
-        if val:
-            color = 'green'
-            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
-        elif pd.notnull(standby_df['limit'].iloc[i]):
-            color = 'red'
-            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
-
-    style += [
-        #     ('BACKGROUND', (-1, 1), (-1, 1), 'red'),
-        ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
-        ('GRID', (0, 0), (-1, -1), .25, 'black'),
-        #     ('BOX', (0, 1), (-1, 6), 1.0, 'black'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (1, 0), (-1, -1), 'CENTER')
-    ]
-
-    return standby_df, style
-
-
 def title_page(canvas, doc):
     """Create a custom title page for the reportlab pdf doc."""
     canvas.saveState()
@@ -294,18 +135,74 @@ def title_page(canvas, doc):
     canvas.restoreState()
 
 
-def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
+def on_mode_df_style(on_mode_df, report_type):
+    # todo implement estar boolean (report_type
+    style = [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
+    for i, val in enumerate(on_mode_df['ratio']<1):
+        if val:
+            color = 'green'
+            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+        elif pd.notnull(on_mode_df['limit'].iloc[i]):
+            color = 'red'
+            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+
+    style += [
+        #     ('BACKGROUND', (-1, 1), (-1, 1), 'red'),
+        ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
+        ('BOX', (0, 0), (-1, -1), 1.0, 'black'),
+        #     ('BOX', (0, 1), (-1, 6), 1.0, 'black'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER')
+    ]
+    break_lines = [i + 1 for i, test_name in on_mode_df['test_name'].iteritems() if 'measured' in test_name]
+    for i in break_lines:
+        style.append(('BOX', (0, 1), (-1, i), 1.0, 'black'))
+    return style
+
+
+def standby_df_style(standby_df):
+    style = []
+    for i, val in enumerate(standby_df['watts']<standby_df['limit']):
+        if val:
+            color = 'green'
+            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+        elif pd.notnull(standby_df['limit'].iloc[i]):
+            color = 'red'
+            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+
+    style += [
+        #     ('BACKGROUND', (-1, 1), (-1, 1), 'red'),
+        ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
+        ('GRID', (0, 0), (-1, -1), .25, 'black'),
+        #     ('BOX', (0, 1), (-1, 6), 1.0, 'black'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER')
+    ]
+    return style
+
+
+def get_limit_func_strings(limit_funcs, hdr):
+    def get_func_str(limit_func):
+        """Crete a string to display the power limit function."""
+        coeffs = limit_func.keywords
+        func_str = f"{coeffs['sf']:.2f}*(({coeffs['a']:.3f}*area+{coeffs['b']:.2f})*({coeffs['e']:.2f}*luminance+{coeffs['f']:.2f}) + {coeffs['c']:.2f}*area+{coeffs['d']:.2f})"
+        return func_str
+    lfs = {
+        'default': '<strong>Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['default']),
+        'brightest': '<strong>Brightest PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['brightest']),
+        'hdr': '<strong>HDR Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['hdr'])
+    }
+    return lfs
+
+
+def make_report(data_folder, report_type, merged_df, hdr, limit_funcs, waketimes, rsdf, test_specs_df, test_date,
+                area, model, on_mode_df, standby_df, lum_df, persistence_dfs):
     """Create the pdf report from the test data."""
     report = ISection(name='report')
-    estar = 'ENERGYSTAR' in data_folder
     # Test Specifics section displays test metadata and tv specs in table
     with report.new_section('Test Specifics') as test_specs:
-        test_specs_df = get_test_specs_df(merged_df, data_folder)
-
-        # save a couple variables from test specs for later use in other sections
-        area = float(test_specs_df.loc['Screen Area (sq in)', 0])
-        test_date = pd.to_datetime(test_specs_df.loc['Test Start Date', 0]).date().strftime('%d-%b-%Y')
-        model = f"{test_specs_df.loc['Make', 0].upper()} {test_specs_df.loc['Model', 0].upper()}"
 
         style = [
             ('BACKGROUND', (0, 0), (0, -1), 'lightgrey'),
@@ -315,22 +212,36 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
         test_specs.create_element('test spec table', test_specs_df.reset_index(), grid_style=style, header=False)
-
-    with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
-        with persistence_summary.new_section('SDR Persistence') as sdr_persistence:
-            pass
-        hdr = 'hdr' in merged_df.test_name.unique()
-        if hdr:
-            with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
-                pass
+    
+    if report_type == 'pcl':
+        with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
+            # todo: implement persistence summary
+            
+            with persistence_summary.new_section('SDR Persistence') as sdr_persistence:
+                sdr_persistence.create_element('sdr_persistence', persistence_dfs['sdr'], save=False)
+                
+            hdr10_df = persistence_dfs.get('hdr_10')
+            if hdr10_df is not None and not hdr10_df.empty:
+                with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
+                    hdr_persistence.create_element('hdr10_persistence', hdr10_df, save=False)
+            
+            hlg_df = persistence_dfs.get('hlg')
+            if hlg_df is not None and not hlg_df.empty:
+                with persistence_summary.new_section('HLG Persistence') as hlg_persistence:
+                    hlg_persistence.create_element('hlg_persistence', hlg_df, save=False)
+                    
+            dv_df = persistence_dfs.get('dolby_vision')
+            if dv_df is not None and not dv_df.empty:
+                with persistence_summary.new_section('Dolby Vision Persistence') as dv_persistence:
+                    dv_persistence.create_element('dv_persistence', dv_df, save=False)
+                    
 
     with report.new_section('Compliance with Additional Tests', page_break=False) as cat:
         with cat.new_section('On Mode Tests') as on_mode_tests:
-            # add on mode table
-            on_mode_df, style = get_on_mode_df(rsdf, limit_funcs, area, estar)
             table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
+            style = on_mode_df_style(on_mode_df, report_type)
             on_mode_tests.create_element('on mode table', table_df, grid_style=style)
-            if estar:
+            if report_type == 'estar':
                 # todo: implement estar text
                 #   probably dependent on how get_on_mode_df implements
                 #   potentially include within same function
@@ -339,56 +250,54 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
                 on_mode_tests.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
 
             # display power limit functions below on mode table
-            def get_func_str(limit_func):
-                """Crete a string to display the power limit function."""
-                coeffs = limit_func.keywords
-                func_str = f"{coeffs['sf']:.2f}*(({coeffs['a']:.3f}*area+{coeffs['b']:.2f})*({coeffs['e']:.2f}*luminance+{coeffs['f']:.2f}) + {coeffs['c']:.2f}*area+{coeffs['d']:.2f})"
-                return func_str
-            s = '<strong>Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['default'])
-            on_mode_tests.create_element('default limit function', s)
-            s = '<strong>Brightest PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['brightest'])
-            on_mode_tests.create_element('brightest limit function', s)
+            limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
+            on_mode_tests.create_element('default limit function', limit_func_strings['default'])
+            on_mode_tests.create_element('brightest limit function', limit_func_strings['brightest'])
             if hdr:
-                s = '<strong>HDR Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['hdr'])
-                on_mode_tests.create_element('hdr limit function', s)
+                on_mode_tests.create_element('hdr limit function', limit_func_strings['hdr'])
 
             # add scatter plot for each pps showing tv power measurements in relation to the relevant limit function line
             for pps in ['default', 'brightest']:
-                on_mode_tests.create_element(f'{pps} dimming plot', plots.dimming_line_scatter(pps, rsdf, area, limit_funcs))
+                on_mode_tests.create_element(
+                    f'{pps} dimming plot',
+                    plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
+                )
             if hdr:
-                on_mode_tests.create_element('hdr dimming plot', plots.dimming_line_scatter('hdr', rsdf, area, limit_funcs))
-
+                on_mode_tests.create_element(
+                    'hdr dimming plot',
+                    plots.dimming_line_scatter('hdr', rsdf, area, limit_funcs)
+                )
         with cat.new_section('Standby') as standby:
             # add standby table
-            standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
-            standby_df, style = get_standby_df(rsdf)
+            
             table_df = clean_rsdf(standby_df, standby_df.columns)
-            standby.create_element('table', table_df, grid_style=style)
+            standby.create_element('table', table_df, grid_style=standby_df_style(standby_df))
 
             # show standby wake times below standby table
+            standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
             s = '<b>Time to Wake from Standby</b><br />'
-            s += '<br />'.join([f'{test}: {waketimes[test]} seconds' for test in standby_tests])
+            s += '<br />'.join([f"{test}: {waketimes[test]} seconds" for test in standby_tests])
             standby.create_element('waketimes', s)
 
             # time vs power (line) plot showing all standby tests
-            standby.create_element('time_plot', plots.standby(merged_df, standby_tests))
+            standby.create_element('standby_plot', plots.standby(merged_df, standby_tests))
 
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
         with supp.new_section('Stabilization') as stab:
             # table and line plot showing stabilization tests
             stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
-            table_df = clean_rsdf(rsdf[rsdf['test_name'].isin(stab_tests)])
+            table_df = clean_rsdf(rsdf.query('test_name.isin(@stab_tests)'))
             stab.create_element('table', table_df)
             stab.create_element('plot', plots.stabilization(merged_df, stab_tests))
 
         with supp.new_section("APL' vs Power Charts", page_break=False)as apl_power:
             # APL vs power scatter plots for each pps (w/ line of best fit)
             with apl_power.new_section('Default PPS: SDR') as default:
-                table_df = clean_rsdf(rsdf[rsdf['test_name']=='default'])
+                table_df = clean_rsdf(rsdf.query('test_name=="default"'))
                 default.create_element('table', table_df)
                 default.create_element('plot', plots.apl_watts_scatter(merged_df, 'default'))
             with apl_power.new_section('Brightest PPS: SDR') as brightest:
-                table_df = clean_rsdf(rsdf[rsdf['test_name']=='brightest'])
+                table_df = clean_rsdf(rsdf.query('test_name=="brightest"'))
                 brightest.create_element('table', table_df)
                 brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'brightest'))
 
@@ -400,11 +309,11 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
 
         with supp.new_section('Light Directionality', page_break=False) as ld:
             with ld.new_section("Average Luminance Along TV's Horizontal Axis", numbering=False) as x_nits:
-                x_nits.create_element('x nits plot', plots.x_nits(light_df))
+                x_nits.create_element('x nits plot', plots.x_nits(lum_df))
             with ld.new_section("Average Luminance Along TV's Vertical Axis", numbering=False) as y_nits:
-                y_nits.create_element('y nits plot', plots.y_nits(light_df))
+                y_nits.create_element('y nits plot', plots.y_nits(lum_df))
             with ld.new_section('Luminance Heatmap', numbering=False) as heatmap:
-                heatmap.create_element('heatmap', plots.nits_heatmap(light_df))
+                heatmap.create_element('heatmap', plots.nits_heatmap(lum_df))
 
 
     # Test Results Table
@@ -413,13 +322,13 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
     # All Plots
     with report.new_section('Test Result Plots', page_break=False) as trp:
         for test_name in rsdf['test_name']:
-            tdf = merged_df[merged_df['test_name'] == test_name].reset_index()
+            tdf = merged_df.query('test_name==@test_name').reset_index()
             tag = tdf.iloc[0]['tag']
             if tag.is_integer():
                 tag = int(tag)
             with trp.new_section(f'Test {tag} - {test_name}', numbering=False) as tn:
-                table_df = clean_rsdf(rsdf[rsdf['test_name']==test_name])
-                tn.create_element(f'{test_name} table', table_df)
+                table_df = clean_rsdf(rsdf.query('test_name==@test_name'))
+                tn.create_element(f'{test_name} table', table_df, save=False)
                 tn.create_element(f'{test_name} plot', plots.standard(tdf))
 
     # build the pdf document
@@ -436,32 +345,10 @@ def make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs):
 
 def main():
     logger, docopt_args, data_folder = lf.start_script(__doc__, 'report.log')
-    
+    ISection.save_content_dir = Path(data_folder).joinpath('Elements')
     paths = ff.get_paths(data_folder)
-
-    test_seq_df = pd.read_csv(paths['test_seq'])
-    data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
-    merged_df = merge.merge_test_data(test_seq_df, data_df)
-    merged_df.to_csv(Path(data_folder).joinpath('merged.csv'), index=False)
-
-    waketimes = get_waketimes(test_seq_df, data_df)
-    rsdf = get_results_summary_df(merged_df, waketimes)
-    rsdf.to_csv(Path(data_folder).joinpath('results-summary.csv'))
-
-    light_df = pd.read_csv(paths['lum_profile'], header=None)
-
-    def power_limit(area, luminance, sf, a, b, c, d, e, f, power_cap=None):
-        limit = sf * ((a * area + b) * (e * luminance + f) + c * area + d)
-        if power_cap is not None:
-            return min(limit, power_cap)
-        else:
-            return limit
-    coeffs = pd.read_csv(Path(sys.path[0]).joinpath('coeffs.csv'), index_col='coef').to_dict()
-    if not estar:
-        del coeffs['power_cap']
-    limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
-
-    make_report(merged_df, rsdf, light_df, data_folder, waketimes, limit_funcs)
+    report_data = get_report_data(paths, data_folder, docopt_args)
+    make_report(**report_data)
 
 
 if __name__ == '__main__':
