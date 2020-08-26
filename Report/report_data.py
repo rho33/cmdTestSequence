@@ -9,9 +9,9 @@ sys.path.append('..')
 from error_popups import permission_popup
 
 
-def get_test_specs_df(merged_df, data_folder):
+def get_test_specs_df(merged_df, paths):
     """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
-    test_specs_df = pd.read_csv(Path(data_folder).joinpath('test-metadata.csv'), header=None, index_col=0)
+    test_specs_df = pd.read_csv(paths['test_metadata'], header=None, index_col=0)
     test_specs_df.columns = [0]
 
     start_date = pd.to_datetime(merged_df['time']).min().date()
@@ -198,7 +198,7 @@ def get_report_data(paths, data_folder, docopt_args):
         data['persistence_dfs'] = None
     data['waketimes'] = get_waketimes(paths)
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
-    data['test_specs_df'] = get_test_specs_df(data['merged_df'], data_folder)
+    data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths)
     data['test_date'] = pd.to_datetime(data['test_specs_df'].loc['Test Start Date', 0]).date().strftime('%d-%b-%Y')
     data['area'] = float(data['test_specs_df'].loc['Screen Area (sq in)', 0])
     data['model'] = f"{data['test_specs_df'].loc['Make', 0].upper()} {data['test_specs_df'].loc['Model', 0].upper()}"
