@@ -56,13 +56,12 @@ setup(  name = "TV Test Report",
         options = {"build_exe": build_exe_options},
         executables = [Executable(r"Report\report.py", base=base),
                        Executable(r"TestSequence\main_sequence.py", base=base),
+                       Executable(r"TestSequence\manual_sequence.py", base=base),
                        Executable(r"TestSequence\pcl_sequence.py", base=base),
                        Executable(r"TestSequence\repair_sequence.py", base=base),
                        Executable(r"CCF\ccf.py", base=base),
                        ]
         )
-
-
 # distutils.dir_util.copy_tree('build/exe.win-amd64-3.6', 'exe.win-amd64-3.6')
 copyfile(r'TestSequence\test-details.csv', r'build\exe.win-amd64-3.6\test-details.csv')
 copyfile(r'TestSequence\entry-forms.xlsx', r'build\exe.win-amd64-3.6\entry-forms.xlsx')

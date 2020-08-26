@@ -2,7 +2,7 @@
 main_sequence.exe  <data_folder> <default_pps> <brightest_pps> [options]
 
 Arguments:
-  model             tv model code
+  data_folder       data folder
   default_pps       name of default preset picture setting
   brightest_pps     name of brightest preset picture setting
 
