@@ -75,7 +75,7 @@ def get_test_df(row, apl_folder):
     return df
 
 
-def get_mock_df(test_seq_df, apl_folder):
+def get_mock_df(test_seq_df, apl_folder, repair=False):
     df_list = []
     for i, row in test_seq_df.iterrows():
         if row['test_name']=='stabilization':
@@ -93,7 +93,10 @@ def get_mock_df(test_seq_df, apl_folder):
             df = pd.concat([get_intro_df(row['tag']), get_test_df(row, apl_folder)])
             df_list.append(df)
     mock_df = pd.concat(df_list, ignore_index=True)
-    mock_df['Timestamp'] = pd.date_range(end=pd.Timestamp.now(), periods=len(mock_df), freq='S')
+    if repair:
+        mock_df['Timestamp'] = pd.date_range(start=pd.Timestamp.now(), periods=len(mock_df), freq='S')
+    else:
+        mock_df['Timestamp'] = pd.date_range(end=pd.Timestamp.now(), periods=len(mock_df), freq='S')
     return mock_df
 
 
@@ -120,7 +123,7 @@ def main():
         test_seq_df = pd.read_csv(values['test_seq'])
         data_folder = Path(values['test_seq']).parent
     apl_folder = r"APL"
-    df = get_mock_df(test_seq_df, apl_folder)
+    df = get_mock_df(test_seq_df, apl_folder, repair='Repair' in str(data_folder))
     save_path = data_folder.joinpath('mock-datalog.csv')
     df.to_csv(str(save_path), index=False)
     lum_save_path = save_path.parent.joinpath('mock_lum profile.csv')
