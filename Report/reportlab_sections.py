@@ -1,6 +1,6 @@
 import warnings
 warnings.filterwarnings("ignore")
-
+from pathlib import Path
 from collections import namedtuple, OrderedDict
 from itertools import chain
 from hashlib import sha1
@@ -224,10 +224,6 @@ GRID_STYLES = {
                          ]),
 }
 
-
-# In[7]:
-
-
 # flowable converters
 def make_paragraph(text, style=PARAGRAPH_STYLES['Normal']):
     """Return Paragraph object from string."""
@@ -306,18 +302,11 @@ class Element(namedtuple('Element', ['content', 'spacer'])):
         spacer = Spacer(height=spacer_height, width=0)
         return cls(content_flowable, spacer)
 
-    # @classmethod
-    # def from_title(cls, title, level, spacer_height=.15*inch):
-    #     """Return an Element containing a report Heading from a string."""
-    #     style = PARAGRAPH_STYLES[f'Heading{level}']
-    #     heading = do_heading(title, style)
-    #     spacer = Spacer(height=spacer_height, width=0)
-    #     return cls(heading, spacer)
-
 
 class Section(Node):
     """This is a container class for Element objects representing sections and subsections of a report."""
-
+    save_content_dir = None
+    
     def __init__(self, name, elements=OrderedDict(), page_break=True, **kwargs):
         super().__init__(name, **kwargs)
         self.elements = elements
@@ -347,9 +336,19 @@ class Section(Node):
                                                              level=self.depth + 1)
         return new_section
 
-    def create_element(self, name, content, **kw):
+    def create_element(self, name, content, save=True, **kw):
         """Create a new Element from raw content"""
         self.elements[name] = Element.from_content(content, **kw)
+        if self.save_content_dir is not None and save:
+            Path(self.save_content_dir).mkdir(exist_ok=True, parents=True)
+            save_path = Path(self.save_content_dir).joinpath(f"{name.replace(' ', '_')}")
+            f = {
+                type(gcf()): f'content.savefig(r"{save_path}.png")',
+                type(pd.DataFrame()): f'content.to_csv(r"{save_path}.csv", index=False)'
+            }
+            eval(f.get(type(content), 'None'))
+            
+            
 
     def story(self):
         """Return report as a list ready to be passed to MyDocTemplate multiBuild method."""
