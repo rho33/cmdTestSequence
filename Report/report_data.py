@@ -9,9 +9,13 @@ sys.path.append('..')
 from error_popups import permission_popup
 
 
-def get_test_specs_df(merged_df, paths):
+def get_test_specs_df(merged_df, paths, report_type):
     """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
-    test_specs_df = pd.read_csv(paths['test_metadata'], header=None, index_col=0)
+    # todo: get don't use test metadata for PCL testing
+    if report_type == 'pcl':
+        test_specs_df = pd.read_excel(paths['entry_forms'], sheet_name='Misc', header=None, index_col=0)
+    else:
+        test_specs_df = pd.read_csv(paths['test_metadata'], header=None, index_col=0)
     test_specs_df.columns = [0]
 
     start_date = pd.to_datetime(merged_df['time']).min().date()
@@ -44,6 +48,7 @@ def get_results_summary_df(merged_df, data_folder, waketimes):
 
     for i, row in rsdf.reset_index().iterrows():
         if 'standby' in row['test_name']:
+            # todo: handle standby test not being long enough
             last20_df = merged_df[merged_df['tag'] == row['tag']].iloc[-20 * 60]
             for col in ['watts', 'nits']:
                 rsdf.loc[row['tag'], col] = last20_df[col].mean()
@@ -67,7 +72,7 @@ def get_waketimes(paths):
     return waketimes
 
 
-def get_on_mode_df(rsdf, limit_funcs, area):
+def get_on_mode_df(rsdf, limit_funcs, area, report_type):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
     def add_pps_tests(on_mode_df, cdf, abc_off_test, abc_on_tests, limit_func):
         on_mode_df = on_mode_df.append(cdf.loc[abc_off_test])
@@ -111,8 +116,13 @@ def get_on_mode_df(rsdf, limit_funcs, area):
 
     on_mode_df = on_mode_df.reset_index()
     on_mode_df['ratio'] = on_mode_df['watts']/on_mode_df['limit']
-    data = {'test_name': 'average_measured', 'ratio': on_mode_df['ratio'].mean()}
+    if report_type == 'estar':
+        s = f"{sum(on_mode_df['ratio'].dropna() < 1)}/{len(on_mode_df['ratio'].dropna())}"
+        data = {'test_name': 'passing_pps', 'ratio': s}
+    else:
+        data = {'test_name': 'average_measured', 'ratio': on_mode_df['ratio'].mean()}
     on_mode_df = on_mode_df.append(data, ignore_index=True)
+    
     cols = ['test_name', 'preset_picture', 'abc', 'lux', 'mdd', 'nits', 'limit', 'watts', 'ratio']
     cols = [col for col in cols if col in on_mode_df.columns]
     on_mode_df = on_mode_df[cols]
@@ -128,8 +138,6 @@ def get_standby_df(rsdf):
     standby_df = standby_df.reset_index()[cols]
 
     return standby_df
-
-
 
 
 def get_persistence_dfs(paths):
@@ -167,21 +175,20 @@ def get_limit_funcs(report_type):
             return limit
     
     coeffs = pd.read_csv(Path(sys.path[0]).joinpath('coeffs.csv'), index_col='coef')
-    if report_type == 'estar':
+    if report_type != 'estar':
         coeffs = coeffs.drop('power_cap')
     coeffs = coeffs.to_dict()
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
     return limit_funcs
 
-
-
     
 @permission_popup
-def get_merged_df(paths, data_folder):
+def get_merged_df(paths, data_folder, report_type):
     test_seq_df = pd.read_csv(paths['test_seq'])
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
     merged_df = merge.merge_test_data(test_seq_df, data_df)
     merged_df.to_csv(Path(data_folder).joinpath('merged.csv'), index=False)
+    # todo: handle different report types
     return merged_df
 
 
@@ -189,7 +196,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data = {}
     data['data_folder'] = data_folder
     data['report_type'] = get_report_type(docopt_args, data_folder)
-    data['merged_df'] = get_merged_df(paths, data_folder)
+    data['merged_df'] = get_merged_df(paths, data_folder, data['report_type'])
     data['hdr'] = 'hdr' in data['merged_df'].test_name.unique()
     data['limit_funcs'] = get_limit_funcs(data['report_type'])
     if data['report_type']=='pcl':
@@ -198,12 +205,12 @@ def get_report_data(paths, data_folder, docopt_args):
         data['persistence_dfs'] = None
     data['waketimes'] = get_waketimes(paths)
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
-    data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths)
+    data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
     data['test_date'] = pd.to_datetime(data['test_specs_df'].loc['Test Start Date', 0]).date().strftime('%d-%b-%Y')
     data['area'] = float(data['test_specs_df'].loc['Screen Area (sq in)', 0])
-    data['model'] = f"{data['test_specs_df'].loc['Make', 0].upper()} {data['test_specs_df'].loc['Model', 0].upper()}"
+    data['model'] = f"{str(data['test_specs_df'].loc['Make', 0]).upper()} {str(data['test_specs_df'].loc['Model', 0]).upper()}"
     
-    data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'])
+    data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'])
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['lum_df'] = pd.read_csv(paths['lum_profile'], header=None)
     return data

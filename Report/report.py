@@ -96,7 +96,13 @@ def clean_rsdf(rsdf, cols=None):
 
     cdf = cdf.dropna(axis=1, how='all')
     cdf = cdf.rename(columns=rename_cols)
-    cdf = cdf.round(decimals=1)
+
+    def round_if_float(x, decimals=1):
+        if isinstance(x, float):
+            return round(x, decimals)
+        else:
+            return x
+    cdf = cdf.applymap(round_if_float)
     return cdf
 
 
@@ -131,27 +137,39 @@ def title_page(canvas, doc):
     canvas.drawCentredString(306, pcl_logo_y + pcl_logo_height, 'Prepared By:')
 
     canvas.setFont(font, 16)
-#     canvas.drawCentredString(306, inch, title_test_date)
     canvas.restoreState()
 
 
 def on_mode_df_style(on_mode_df, report_type):
     # todo implement estar boolean (report_type
     style = [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
-    for i, val in enumerate(on_mode_df['ratio']<1):
-        if val:
-            color = 'green'
+    
+    for i, row in on_mode_df.iterrows():
+        if pd.notnull(row['ratio']):
+            if isinstance(row['ratio'], str):
+                if eval(row['ratio']) == 1:
+                    color = 'green'
+                else:
+                    color = 'red'
+            else:
+                if row['ratio']<1:
+                    color = 'green'
+                else:
+                    color = 'red'
             style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
-        elif pd.notnull(on_mode_df['limit'].iloc[i]):
-            color = 'red'
-            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+    
+    # for i, val in enumerate(on_mode_df['ratio']<1):
+    #     if val:
+    #         color = 'green'
+    #         style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+    #     elif pd.notnull(on_mode_df['limit'].iloc[i]):
+    #         color = 'red'
+    #         style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
 
     style += [
-        #     ('BACKGROUND', (-1, 1), (-1, 1), 'red'),
         ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
         ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
         ('BOX', (0, 0), (-1, -1), 1.0, 'black'),
-        #     ('BOX', (0, 1), (-1, 6), 1.0, 'black'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (1, 0), (-1, -1), 'CENTER')
     ]
@@ -172,11 +190,9 @@ def standby_df_style(standby_df):
             style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
 
     style += [
-        #     ('BACKGROUND', (-1, 1), (-1, 1), 'red'),
         ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
         ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
         ('GRID', (0, 0), (-1, -1), .25, 'black'),
-        #     ('BOX', (0, 1), (-1, 6), 1.0, 'black'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (1, 0), (-1, -1), 'CENTER')
     ]
@@ -188,6 +204,8 @@ def get_limit_func_strings(limit_funcs, hdr):
         """Crete a string to display the power limit function."""
         coeffs = limit_func.keywords
         func_str = f"{coeffs['sf']:.2f}*(({coeffs['a']:.3f}*area+{coeffs['b']:.2f})*({coeffs['e']:.2f}*luminance+{coeffs['f']:.2f}) + {coeffs['c']:.2f}*area+{coeffs['d']:.2f})"
+        if 'power_cap' in coeffs.keys():
+            func_str = f'Minimum of:<br/>1. {func_str}<br/>2. {coeffs["power_cap"]}'
         return func_str
     lfs = {
         'default': '<strong>Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['default']),
@@ -332,7 +350,10 @@ def make_report(data_folder, report_type, merged_df, hdr, limit_funcs, waketimes
                 tn.create_element(f'{test_name} plot', plots.standard(tdf))
 
     # build the pdf document
-    path_str = str(Path(data_folder).joinpath('report.pdf'))
+    report_name = {'estar': 'ENERGYSTAR-report.pdf',
+                   'alternative-report.pdf': 'alternative',
+                   'pcl': 'pcl-report.pdf'}.get(report_type)
+    path_str = str(Path(data_folder).joinpath(report_name))
 
     def content_page(canvas, doc):
         canvas.saveState()
