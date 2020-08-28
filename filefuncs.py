@@ -34,7 +34,7 @@ PATTERNS = {
     'test_data': '*datalog*.csv',
     'lum_profile': '*lum profile*.csv',
     'cmd_seq': '*command-sequence*.csv',
-    'entry_forms': '*entry-forms*.xlsx',
+    'entry_forms': 'entry-forms*.xlsx',
     'repair_test_seq': 'Repair/*test-sequence*.csv',
     'repair_cmd_seq': 'Repair/*command-sequence*.csv',
     'repair_data': 'Repair/*datalog*.csv',
