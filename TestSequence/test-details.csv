@@ -4,14 +4,14 @@ brightest_100,600,sdr,brightest,on,default_level,100,off,,,brightest
 brightest_12,600,sdr,brightest,on,default_level,12,off,,,brightest
 brightest_3,600,sdr,brightest,on,default_level,3,off,,,brightest
 brightest_35,600,sdr,brightest,on,default_level,35,off,,,brightest
-brightest_low_backlight,600,sdr,brightest,on,lowest_level,3,off,,,brightest
+brightest_low_backlight,600,sdr,brightest,on,lowest_level,,off,,,brightest
 colors,,sdr_colors,default,off,default_level,,off,,,default
 default,600,sdr,default,off,default_level,,off,,,default
 default_100,600,sdr,default,on,default_level,100,off,,,default
 default_12,600,sdr,default,on,default_level,12,off,,,default
 default_3,600,sdr,default,on,default_level,3,off,,,default
 default_35,600,sdr,default,on,default_level,35,off,,,default
-default_low_backlight,600,sdr,default,on,lowest_level,3,off,,,default
+default_low_backlight,600,sdr,default,on,lowest_level,,off,,,default
 dv,300,clasp_dv,dv_default,off,default_level,,off,,,hdr10_default
 dv_100,300,clasp_dv,dv_default,on,default_level,100,off,,,hdr10_default
 dv_12,300,clasp_dv,dv_default,on,default_level,12,off,,,hdr10_default
@@ -26,7 +26,7 @@ hdr10_100,300,clasp_hdr,hdr10_default,on,default_level,100,off,,,hdr10_default
 hdr10_12,300,clasp_hdr,hdr10_default,on,default_level,12,off,,,hdr10_default
 hdr10_3,300,clasp_hdr,hdr10_default,on,default_level,3,off,,,hdr10_default
 hdr10_35,300,clasp_hdr,hdr10_default,on,default_level,35,off,,,hdr10_default
-hdr10_low_backlight,300,clasp_hdr,hdr10_default,on,lowest_level,3,off,,,hdr10_default
+hdr10_low_backlight,300,clasp_hdr,hdr10_default,on,lowest_level,,off,,,hdr10_default
 hdr10+,300,clasp_hdr10+,hdr10+_default,off,default_level,,off,,,hdr10_default
 hdr10+_100,300,clasp_hdr10+,hdr10+_default,on,default_level,100,off,,,hdr10_default
 hdr10+_12,300,clasp_hdr10+,hdr10+_default,on,default_level,12,off,,,hdr10_default
@@ -45,7 +45,7 @@ hlg_12,300,clasp_hlg,hlg_default,on,default_level,12,off,,,hdr10_default
 hlg_3,300,clasp_hlg,hlg_default,on,default_level,3,off,,,hdr10_default
 hlg_35,300,clasp_hlg,hlg_default,on,default_level,35,off,,,hdr10_default
 hlg_low_backlight,300,clasp_hlg,hlg_default,off,default_level,,off,,,hdr10_default
-lum_profile,,lum_sdr,default,off,default_level,,off,,lum_profile:  ,default
+lum_profile,,lum_sdr,default,off,default_level,,off,,lum_profile:,default
 pps10,120,sdr,pps10,off,default_level,,off,,,default
 pps10_100,120,sdr,pps10,on,default_level,100,off,,,default
 pps10_12,120,sdr,pps10,on,default_level,12,off,,,default
