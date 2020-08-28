@@ -239,14 +239,13 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
     abc_on_lums = [point[0] for label, point in points.items() if label != 'ABC Off']
     abc_on_power = [point[1] for label, point in points.items() if label != 'ABC Off']
 
-
     abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
     measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
     plt.plot(*measured, marker='o', color='black', markersize=markersize)
     handle = mlines.Line2D([], [], linewidth=0, label='Measured', marker='.', markersize=markersize, color='black')
     handles.append(handle)
 
-    min_lum, max_lum = 0, max(lums) * 1.25
+    min_lum, max_lum = 0, max(lums)*1.25
     
     xs = np.arange(min_lum, max_lum, .1)
     ys = [limit_func(area=area, luminance=i) for i in xs]
@@ -258,7 +257,7 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
 
     plt.xlim(min_lum, max_lum)
     ax.legend(handles=handles)
-    title = {'default': 'Default PPS', 'brightest': 'Brightest PPS', 'hdr': 'HDR Default PPS'}.get(pps)
+    title = {'default': 'POA Default PPS', 'brightest': 'POA Brightest PPS', 'hdr': 'POA HDR Default PPS'}.get(pps)
     plt.title(title, fontsize=24)
     plt.close()
     return fig
