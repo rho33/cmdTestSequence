@@ -23,12 +23,11 @@ def setup_tests(ccf_pps_list, lum_profile=True):
     # include a ref_ccf test for each preset picture setting requiring a color correction factor
     test_order = [f"ref_ccf_{pps}" for pps in ccf_pps_list]
     # followed by the screen_config test
-    test_order += ['screen_config']
+    test_order += ['screen_config', 'stabilization']
     # followed by a camera_ccf test for each ccf pps
     test_order += [f"camera_ccf_{pps}" for pps in ccf_pps_list]
     if lum_profile:
         test_order += ['lum_profile']
-    test_order += ['stabilization']
     return test_order
 
 def create_test_seq_df(test_order, rename_pps, qson=False):
