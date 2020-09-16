@@ -166,18 +166,29 @@ def get_report_type(docopt_args, data_folder):
     return report_type
 
 
+def power_cap_funcs():
+    def power_cap(area, sf, a, b):
+        return sf * ((a * area) + b)
+    
+    power_cap_coeffs = pd.read_csv(Path(sys.path[0]).joinpath('power-cap-coeffs.csv'), index_col='coef').to_dict()
+    power_cap_funcs = {func_name: partial(power_cap, **coeff_vals) for func_name, coeff_vals in
+                       power_cap_coeffs.items()}
+    return power_cap_funcs
+
+
 def get_limit_funcs(report_type):
-    def power_limit(area, luminance, sf, a, b, c, d, e, f, power_cap=None):
+    def power_limit(area, luminance, sf, a, b, c, d, e, f, power_cap_func=None):
         limit = sf * ((a * area + b) * (e * luminance + f) + c * area + d)
-        if power_cap is not None:
-            return min(limit, power_cap)
+        if power_cap_func is not None:
+            return min(limit, power_cap_func(area))
         else:
             return limit
     
-    coeffs = pd.read_csv(Path(sys.path[0]).joinpath('coeffs.csv'), index_col='coef')
-    if report_type != 'estar':
-        coeffs = coeffs.drop('power_cap')
-    coeffs = coeffs.to_dict()
+    coeffs = pd.read_csv(Path(sys.path[0]).joinpath('coeffs.csv'), index_col='coef').to_dict()
+    if report_type == 'estar':
+        for func_name in coeffs:
+            coeffs[func_name]['power_cap_func'] = power_cap_funcs()[func_name]
+
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
     return limit_funcs
 

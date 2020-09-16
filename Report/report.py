@@ -204,8 +204,10 @@ def get_limit_func_strings(limit_funcs, hdr):
         """Crete a string to display the power limit function."""
         coeffs = limit_func.keywords
         func_str = f"{coeffs['sf']:.2f}*(({coeffs['a']:.3f}*area+{coeffs['b']:.2f})*({coeffs['e']:.2f}*luminance+{coeffs['f']:.2f}) + {coeffs['c']:.2f}*area+{coeffs['d']:.2f})"
-        if 'power_cap' in coeffs.keys():
-            func_str = f'Minimum of:<br/>1. {func_str}<br/>2. {coeffs["power_cap"]}'
+        if 'power_cap_func' in coeffs.keys():
+            pcf = coeffs['power_cap_func'].keywords
+            power_cap_func_str = f"{pcf['sf']:.2f}*(({pcf['a']:.3f}*area)+{pcf['b']:.3f})"
+            func_str = f'Minimum of:<br/>1. {func_str}<br/>2. {power_cap_func_str}'
         return func_str
     lfs = {
         'default': '<strong>Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['default']),
