@@ -1,10 +1,14 @@
 from collections import OrderedDict
+from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams, transforms
 import matplotlib.lines as mlines
 from seaborn import heatmap
-from functools import partial
+from colour.models import BT2020_COLOURSPACE, BT709_COLOURSPACE
+from colour.colorimetry.spectrum import SpectralDistribution
+from colour.plotting import plot_sds_in_chromaticity_diagram_CIE1931
+from colour.plotting import plot_RGB_colourspaces_in_chromaticity_diagram_CIE1931
 
 rcParams['font.family'] = "sans-serif"
 rcParams['font.sans-serif'] = "Calibri"
@@ -204,7 +208,7 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
             'hdr_3': '3 Lux',
             'hdr_low_backlight': 'Minimum Backlight'
         }
-        mask = rsdf['test_name'].apply(lambda name: pps in name)
+        mask = rsdf['test_name'].apply(lambda name: name in label_dict)
         cdf = rsdf[mask].copy()
         cdf['label'] = cdf['test_name'].apply(label_dict.get)
         points = dict(zip(cdf['label'], zip(cdf['nits'], cdf['watts'])))
@@ -308,5 +312,34 @@ def nits_heatmap(light_df):
     ax.spines['right'].set_color('0.5')
     ax.spines['left'].set_color('0.9')
     fig.subplots_adjust(top=.97, bottom=.14, right=.99)
+    plt.close()
+    return fig
+
+
+def spectral_power_distribution(spectral_df):
+    spectral_df.plot(color=['white', 'red', 'green', 'blue'], figsize=(10, 7))
+    
+    format_ax(xlabel='Wavelength (nm)', ylabel='Radiance\n(W·$sr^{-1}·m^{−2}$)')
+    ax = plt.gca()
+    ax.set_facecolor('dimgray')
+    fig = plt.gcf()
+    fig.subplots_adjust(top=.97, left=.15, right=.99)
+    plt.close()
+    return fig
+
+
+def chromaticity(spectral_df):
+    sd_list = [SpectralDistribution(spectral_df[color], name=color) for color in spectral_df.columns]
+    callable = partial(plot_sds_in_chromaticity_diagram_CIE1931, sd_list)
+    colour_spaces = [BT2020_COLOURSPACE, BT709_COLOURSPACE]
+    fig, ax = plot_RGB_colourspaces_in_chromaticity_diagram_CIE1931(
+        colourspaces=colour_spaces,
+        chromaticity_diagram_callable_CIE1931=callable,
+        standalone=False
+    )
+    fig.set_size_inches(10, 7)
+    ax.legend(handles=ax.legend().legendHandles[-2:])
+    format_ax(xlabel='CIE X', ylabel='CIE Y')
+    ax.set_title('CIE 1931 2 Degree Standard Observer', fontsize=24)
     plt.close()
     return fig

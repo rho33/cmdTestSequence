@@ -203,6 +203,13 @@ def get_merged_df(paths, data_folder, report_type):
     return merged_df
 
 
+def get_spectral_df(paths):
+    df = pd.read_csv(paths['spectral_profile']).iloc[39:]
+    df = df.astype(float).set_index(df.columns[0])
+    df.index.name = 'Wavelength (nm)'
+    return df
+
+
 def get_report_data(paths, data_folder, docopt_args):
     data = {}
     data['data_folder'] = data_folder
@@ -212,8 +219,10 @@ def get_report_data(paths, data_folder, docopt_args):
     data['limit_funcs'] = get_limit_funcs(data['report_type'])
     if data['report_type']=='pcl':
         data['persistence_dfs'] = get_persistence_dfs(paths)
+        data['spectral_df'] = get_spectral_df(paths)
     else:
         data['persistence_dfs'] = None
+        data['spectral_df'] = None
     data['waketimes'] = get_waketimes(paths)
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
     data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])

@@ -39,7 +39,8 @@ PATTERNS = {
     'repair_cmd_seq': 'Repair/*command-sequence*.csv',
     'repair_data': 'Repair/*datalog*.csv',
     'repair_lum_profile': 'Repair/*lum profile*.csv',
-    'test_metadata': '*test-metadata*.csv'
+    'test_metadata': '*test-metadata*.csv',
+    'spectral_profile': '*spectral*.csv'
 }
 
 

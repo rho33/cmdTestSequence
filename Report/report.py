@@ -218,7 +218,7 @@ def get_limit_func_strings(limit_funcs, hdr):
 
 
 def make_report(data_folder, report_type, merged_df, hdr, limit_funcs, waketimes, rsdf, test_specs_df, test_date,
-                area, model, on_mode_df, standby_df, lum_df, persistence_dfs):
+                area, model, on_mode_df, standby_df, lum_df, persistence_dfs, spectral_df):
     """Create the pdf report from the test data."""
     report = ISection(name='report')
     # Test Specifics section displays test metadata and tv specs in table
@@ -334,7 +334,13 @@ def make_report(data_folder, report_type, merged_df, hdr, limit_funcs, waketimes
                 y_nits.create_element('y nits plot', plots.y_nits(lum_df))
             with ld.new_section('Luminance Heatmap', numbering=False) as heatmap:
                 heatmap.create_element('heatmap', plots.nits_heatmap(lum_df))
-
+        
+        # todo: add spectral profile section for PCL tests
+        if report_type == 'pcl':
+            with supp.new_section('Spectral Power Distribution') as spd:
+                spd.create_element('spectral plot', plots.spectral_power_distribution(spectral_df))
+                spd.create_element('chromaticity plot', plots.chromaticity(spectral_df))
+                # todo chromaticity table
 
     # Test Results Table
     with report.new_section('Test Results Table') as table:
