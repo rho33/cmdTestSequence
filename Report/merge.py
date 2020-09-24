@@ -86,12 +86,25 @@ def add_apl_data(df):
     return df
 
 
+def remove_rows_rewind(df):
+    start_tag_seq_df = df[df['Tag']!=df['Tag'].shift(1)].dropna(subset=['Tag'])
+    duplicate_start = start_tag_seq_df[start_tag_seq_df['Tag'].duplicated(keep='last')].index.values
+
+    end_tag_seq_df = df[df['Tag']!=df['Tag'].shift(-1)].dropna(subset=['Tag'])
+    duplicate_end = end_tag_seq_df[end_tag_seq_df['Tag'].duplicated(keep='last')].index.values + 1
+
+    remove_rows = []
+    for start, end in zip(duplicate_start, duplicate_end):
+        remove_rows += range(start, end)
+    return df.drop(remove_rows)
+
+
 def merge_test_data(test_seq_df, data_df):
     """
     Merges test output data, test sequence data, and APL data
     into a single cleaned csv ready to be used in data report script.
     """
-    merged_df = data_df.copy()
+    merged_df = remove_rows_rewind(data_df.copy())
     merged_df['time'] = merged_df['Timestamp'].apply(round_time)
     merged_df = merged_df.drop_duplicates(subset=['time'])
     merged_df = merged_df.reset_index()[['time', 'Power', 'Luminance', 'Tag']]
