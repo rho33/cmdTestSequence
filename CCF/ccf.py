@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import normalize
-from scipy.stats import linregress
+from scipy.optimize import minimize
 from scipy.interpolate import CubicSpline
 from docopt import docopt
 sys.path.append('..')
@@ -22,24 +22,30 @@ from error_popups import permission_popup
 import logfuncs as lf
 
 @lf.log_output
-def get_rgb_trendlines(photometer_df, camera_df):
-    trendlines = {}
-    for col in ['r', 'g', 'b']:
-        y = photometer_df[col]
-        x = camera_df[col]
-        slope, intercept, r_value, p_value, std_err = linregress(x, y)
-        trendlines[col] = np.array([slope, intercept])
-    return trendlines
+def get_trendline(pps_df):
+    # trendlines = {}
+    # for col in ['r', 'g', 'b']:
+    y = pps_df['photometer'].values
+    x = pps_df['camera'].values
+
+    def squared_percentage_error(w):
+        slope, intercept = w
+        y_pred = slope*x + intercept
+        spe = ((y_pred - y)/y)**2
+        return spe.sum()
+
+    slope, intercept = minimize(squared_percentage_error, [1.0, 0.0]).x
+    trendline = np.array([slope, intercept])
+    return trendline
 
 
-def get_splines(camera_df):
-    x = np.insert(camera_df['signal'].values, 0, 0)
-    splines = {}
-    for col in ['r', 'g', 'b']:
-        y = np.insert(camera_df[col].values, 0, 0).reshape(1, -1)
-        y = normalize(y, norm='max').reshape(-1)
-        splines[col] = CubicSpline(x, y)
-    return splines
+def get_spline(input_df):
+    x = np.insert(input_df['signal'].values, 0, 0)
+    y = np.insert(input_df['camera'].values, 0, 0).reshape(1, -1)
+    y = normalize(y, norm='max').reshape(-1)
+
+    return CubicSpline(x, y)
+
 
 @lf.log_output
 def get_w_outputs(rgb_dist_df, splines):
@@ -73,35 +79,21 @@ def main():
         else:
             shutil.copy(src, dst)
             time.sleep(.5)
-            os.system(str(dst))
+            # os.system(str(dst))
     else:
-        drop_cols = ['r_photometer', 'g_photometer', 'b_photometer', 'r_camera', 'g_camera', 'b_camera']
+        drop_cols = ['photometer', 'camera']
         input_df = pd.read_csv(docopt_args['<input_path>']).dropna(subset=drop_cols, how='all')
         final_trendlines = {}
         for pps in input_df['pps'].unique():
             logger.info(f'\nPPS: {pps}')
             pps_df = input_df.query('pps==@pps')
-            
-            photometer_df = pps_df[['signal', 'r_photometer', 'g_photometer', 'b_photometer']].copy()
-            photometer_df.columns = ['signal', 'r', 'g', 'b']
-            camera_df = pps_df[['signal', 'r_camera', 'g_camera', 'b_camera']].copy()
-            camera_df.columns = ['signal', 'r', 'g', 'b']
-            
-            dist_file = {True: 'rgb_distribution_hdr.csv', False: 'rgb_distribution_sdr.csv'}.get('hdr' in pps)
-            logger.info(dist_file)
-            rgb_dist_df = pd.read_csv(Path(sys.path[0]).joinpath(dist_file))
-            
-            splines = get_splines(camera_df)
-            w_outputs = get_w_outputs(rgb_dist_df, splines)
-            trendlines = get_rgb_trendlines(photometer_df, camera_df)
-            final_trendlines[pps] = get_final_trendline(trendlines, w_outputs)
+            final_trendlines[pps] = get_trendline(pps_df)
 
         output_path = 'ccf-output.csv'
         if docopt_args['-o'] is not None:
             output_path = Path(docopt_args['-o']).joinpath(output_path)
         pd.DataFrame(data=final_trendlines, index=['slope', 'intercept']).T.to_csv(output_path)
-        # time.sleep(.5)
-        # os.system(str(output_path))
+
 
 
 if __name__ == '__main__':
