@@ -7,15 +7,11 @@ Options:
   -o=path    output folder path
 """
 import sys
-import os
 import shutil
-import time
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import normalize
 from scipy.optimize import minimize
-from scipy.interpolate import CubicSpline
 from docopt import docopt
 sys.path.append('..')
 from error_popups import permission_popup
@@ -23,8 +19,7 @@ import logfuncs as lf
 
 @lf.log_output
 def get_trendline(pps_df):
-    # trendlines = {}
-    # for col in ['r', 'g', 'b']:
+
     y = pps_df['photometer'].values
     x = pps_df['camera'].values
 
@@ -37,25 +32,6 @@ def get_trendline(pps_df):
     slope, intercept = minimize(squared_percentage_error, [1.0, 0.0]).x
     trendline = np.array([slope, intercept])
     return trendline
-
-
-def get_spline(input_df):
-    x = np.insert(input_df['signal'].values, 0, 0)
-    y = np.insert(input_df['camera'].values, 0, 0).reshape(1, -1)
-    y = normalize(y, norm='max').reshape(-1)
-
-    return CubicSpline(x, y)
-
-
-@lf.log_output
-def get_w_outputs(rgb_dist_df, splines):
-    outputs = {}
-    for col in ['r', 'g', 'b']:
-        cs = splines[col]
-        output = rgb_dist_df[['signal', col]].apply(lambda row: cs(row['signal']) * row[col], axis=1).sum()
-        outputs[col] = output
-    w_outputs = {i: j / sum(outputs.values()) for i, j in outputs.items()}
-    return w_outputs
 
 @lf.log_output
 def get_final_trendline(trendlines, w_outputs):
@@ -78,8 +54,6 @@ def main():
             print(f'{dst} already exists')
         else:
             shutil.copy(src, dst)
-            time.sleep(.5)
-            # os.system(str(dst))
     else:
         drop_cols = ['photometer', 'camera']
         input_df = pd.read_csv(docopt_args['<input_path>']).dropna(subset=drop_cols, how='all')
