@@ -21,9 +21,9 @@ def setup_tests(ccf_pps_list, lum_profile=True):
     """Construct list of setup tests meant to go at beginning of a test sequence"""
     
     # include a ref_ccf test for each preset picture setting requiring a color correction factor
-    test_order = [f"ref_ccf_{pps}" for pps in ccf_pps_list]
+    # test_order = [f"ref_ccf_{pps}" for pps in ccf_pps_list]
     # followed by the screen_config test
-    test_order += ['screen_config', 'stabilization']
+    test_order = ['screen_config', 'stabilization']
     # followed by a camera_ccf test for each ccf pps
     test_order += [f"camera_ccf_{pps}" for pps in ccf_pps_list]
     if lum_profile:
