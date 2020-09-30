@@ -18,7 +18,7 @@ import pandas as pd
 from reportlab.lib.units import inch
 import reportlab_sections as rls
 import plots
-from report_data import get_report_data
+import report_data as rd
 
 import logfuncs as lf
 import filefuncs as ff
@@ -428,10 +428,16 @@ def make_report(report_data):
 
 def main():
     logger, docopt_args, data_folder = lf.start_script(__doc__, 'report.log')
-    ISection.save_content_dir = Path(data_folder).joinpath('Elements')
     paths = ff.get_paths(data_folder)
-    report_data = get_report_data(paths, data_folder, docopt_args)
-    make_report(report_data)
+    
+    if Path(sys.path[0]).joinpath('simple.txt').exists():
+        merged_df = rd.get_merged_df(paths, data_folder)
+        rd.get_results_summary_df(merged_df, data_folder)
+        rd.get_ccf_df(merged_df, data_folder)
+    else:
+        report_data = rd.get_report_data(paths, data_folder, docopt_args)
+        ISection.save_content_dir = Path(data_folder).joinpath('Elements')
+        make_report(report_data)
 
 
 if __name__ == '__main__':
