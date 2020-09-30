@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 import merge
 sys.path.append('..')
-from error_popups import permission_popup
+from error_handling import permission_popup, except_none_log
 
-
+@except_none_log
 def get_test_specs_df(merged_df, paths, report_type):
     """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
     # todo: get don't use test metadata for PCL testing
@@ -34,6 +34,7 @@ def get_test_specs_df(merged_df, paths, report_type):
 
     return test_specs_df
 
+@except_none_log
 @permission_popup
 def get_results_summary_df(merged_df, data_folder, waketimes):
     """Create a dataframe with one line per test showing test info and test results (average watts and nits)."""
@@ -49,14 +50,15 @@ def get_results_summary_df(merged_df, data_folder, waketimes):
     for i, row in rsdf.reset_index().iterrows():
         if 'standby' in row['test_name']:
             # todo: handle standby test not being long enough
-            last20_df = merged_df[merged_df['tag'] == row['tag']].iloc[-20 * 60]
-            for col in ['watts', 'nits']:
-                rsdf.loc[row['tag'], col] = last20_df[col].mean()
+            if len(merged_df) > (20*60):
+                last20_df = merged_df[merged_df['tag'] == row['tag']].iloc[-20 * 60:]
+                for col in ['watts', 'nits']:
+                    rsdf.loc[row['tag'], col] = last20_df[col].mean()
 
     rsdf.to_csv(Path(data_folder).joinpath('results-summary.csv'))
     return rsdf
 
-
+@except_none_log
 def get_waketimes(paths):
     """Calculate wake times from the test data and return as a dictionary."""
     test_seq_df = pd.read_csv(paths['test_seq'])
@@ -71,7 +73,7 @@ def get_waketimes(paths):
             waketimes[standby_test] = waketime
     return waketimes
 
-
+@except_none_log
 def get_on_mode_df(rsdf, limit_funcs, area, report_type):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
     def add_pps_tests(on_mode_df, cdf, abc_off_test, abc_on_tests, limit_func):
@@ -128,7 +130,7 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type):
     on_mode_df = on_mode_df[cols]
     return on_mode_df
 
-
+@except_none_log
 def get_standby_df(rsdf):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of standby testing."""
     standby_df = rsdf[rsdf['test_name'].apply(lambda x: 'standby' in x)].copy()
@@ -139,7 +141,7 @@ def get_standby_df(rsdf):
 
     return standby_df
 
-
+@except_none_log
 def get_persistence_dfs(paths):
     df = pd.read_excel(paths['entry_forms'], sheet_name='Persistence Summary')
     persistence_dfs = {}
@@ -152,7 +154,7 @@ def get_persistence_dfs(paths):
         persistence_dfs[mode.lower().replace(' ', '_')] = mode_df.dropna(subset=['Preset Picture Setting'])
     return persistence_dfs
 
-
+@except_none_log
 def get_report_type(docopt_args, data_folder):
     if docopt_args['-e'] or 'ENERGYSTAR' in data_folder.stem:
         return 'estar'
@@ -165,7 +167,7 @@ def get_report_type(docopt_args, data_folder):
         return 'estar'
     return report_type
 
-
+@except_none_log
 def power_cap_funcs():
     def power_cap(area, sf, a, b):
         return sf * ((a * area) + b)
@@ -175,7 +177,7 @@ def power_cap_funcs():
                        power_cap_coeffs.items()}
     return power_cap_funcs
 
-
+@except_none_log
 def get_limit_funcs(report_type):
     def power_limit(area, luminance, sf, a, b, c, d, e, f, power_cap_func=None):
         limit = sf * ((a * area + b) * (e * luminance + f) + c * area + d)
@@ -192,9 +194,9 @@ def get_limit_funcs(report_type):
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
     return limit_funcs
 
-    
+@except_none_log
 @permission_popup
-def get_merged_df(paths, data_folder, report_type):
+def get_merged_df(paths, data_folder):
     test_seq_df = pd.read_csv(paths['test_seq'])
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
     merged_df = merge.merge_test_data(test_seq_df, data_df)
@@ -202,19 +204,22 @@ def get_merged_df(paths, data_folder, report_type):
     # todo: handle different report types
     return merged_df
 
-
+@except_none_log
 def get_spectral_df(paths):
     df = pd.read_csv(paths['spectral_profile']).iloc[39:]
     df = df.astype(float).set_index(df.columns[0])
     df.index.name = 'Wavelength (nm)'
     return df
 
-
+@except_none_log
+def get_lum_df(paths):
+    return pd.read_csv(paths['lum_profile'], header=None)
+    
 def get_report_data(paths, data_folder, docopt_args):
     data = {}
     data['data_folder'] = data_folder
     data['report_type'] = get_report_type(docopt_args, data_folder)
-    data['merged_df'] = get_merged_df(paths, data_folder, data['report_type'])
+    data['merged_df'] = get_merged_df(paths, data_folder)
     data['hdr'] = 'hdr' in data['merged_df'].test_name.unique()
     data['limit_funcs'] = get_limit_funcs(data['report_type'])
     if data['report_type']=='pcl':
@@ -232,5 +237,5 @@ def get_report_data(paths, data_folder, docopt_args):
     
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'])
     data['standby_df'] = get_standby_df(data['rsdf'])
-    data['lum_df'] = pd.read_csv(paths['lum_profile'], header=None)
+    data['lum_df'] = get_lum_df(paths)
     return data

@@ -5,7 +5,7 @@ import pandas as pd
 from pathlib import Path
 sys.path.append('..')
 from filefuncs import archive
-from error_popups import permission_popup
+from error_handling import permission_popup
 
 
 def get_tests():

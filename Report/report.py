@@ -11,6 +11,7 @@ Options:
   -p
 """
 import sys
+sys.path.append('..')
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -18,9 +19,10 @@ from reportlab.lib.units import inch
 import reportlab_sections as rls
 import plots
 from report_data import get_report_data
-sys.path.append('..')
+
 import logfuncs as lf
 import filefuncs as ff
+from error_handling import skip_and_warn
 
 
 class ISection(rls.Section):
@@ -138,8 +140,8 @@ def title_page(canvas, doc):
 
     canvas.setFont(font, 16)
     canvas.restoreState()
-
-
+    
+    
 def on_mode_df_style(on_mode_df, report_type):
     # todo implement estar boolean (report_type
     style = [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
@@ -217,135 +219,154 @@ def get_limit_func_strings(limit_funcs, hdr):
     return lfs
 
 
-def make_report(data_folder, report_type, merged_df, hdr, limit_funcs, waketimes, rsdf, test_specs_df, test_date,
-                area, model, on_mode_df, standby_df, lum_df, persistence_dfs, spectral_df):
-    """Create the pdf report from the test data."""
-    report = ISection(name='report')
-    # Test Specifics section displays test metadata and tv specs in table
-    with report.new_section('Test Specifics') as test_specs:
-
-        style = [
-            ('BACKGROUND', (0, 0), (0, -1), 'lightgrey'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
-            ('GRID', (0, 0), (-1, -1), 0.25, 'black'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-        test_specs.create_element('test spec table', test_specs_df.reset_index(), grid_style=style, header=False)
-    
-    if report_type == 'pcl':
-        with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
-            # todo: implement persistence summary
-            
-            with persistence_summary.new_section('SDR Persistence') as sdr_persistence:
-                sdr_persistence.create_element('sdr_persistence', persistence_dfs['sdr'], save=False)
+@skip_and_warn
+def add_persistence_summary(report, persistence_dfs):
+    with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
+        
+        with persistence_summary.new_section('SDR Persistence') as sdr_persistence:
+            sdr_persistence.create_element('sdr_persistence', persistence_dfs['sdr'], save=False)
+        
+        hdr10_df = persistence_dfs.get('hdr_10')
+        if hdr10_df is not None and not hdr10_df.empty:
+            with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
+                hdr_persistence.create_element('hdr10_persistence', hdr10_df, save=False)
+        
+        hlg_df = persistence_dfs.get('hlg')
+        if hlg_df is not None and not hlg_df.empty:
+            with persistence_summary.new_section('HLG Persistence') as hlg_persistence:
+                hlg_persistence.create_element('hlg_persistence', hlg_df, save=False)
+        
+        dv_df = persistence_dfs.get('dolby_vision')
+        if dv_df is not None and not dv_df.empty:
+            with persistence_summary.new_section('Dolby Vision Persistence') as dv_persistence:
+                dv_persistence.create_element('dv_persistence', dv_df, save=False)
                 
-            hdr10_df = persistence_dfs.get('hdr_10')
-            if hdr10_df is not None and not hdr10_df.empty:
-                with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
-                    hdr_persistence.create_element('hdr10_persistence', hdr10_df, save=False)
-            
-            hlg_df = persistence_dfs.get('hlg')
-            if hlg_df is not None and not hlg_df.empty:
-                with persistence_summary.new_section('HLG Persistence') as hlg_persistence:
-                    hlg_persistence.create_element('hlg_persistence', hlg_df, save=False)
-                    
-            dv_df = persistence_dfs.get('dolby_vision')
-            if dv_df is not None and not dv_df.empty:
-                with persistence_summary.new_section('Dolby Vision Persistence') as dv_persistence:
-                    dv_persistence.create_element('dv_persistence', dv_df, save=False)
-                    
+    return report
 
+@skip_and_warn
+def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_funcs, hdr, rsdf, area, standby_df,
+                           waketimes, **kwargs):
+    
+        
     with report.new_section('Compliance with Additional Tests', page_break=False) as cat:
+        
+        
         with cat.new_section('On Mode Tests') as on_mode_tests:
-            table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
-            style = on_mode_df_style(on_mode_df, report_type)
-            on_mode_tests.create_element('on mode table', table_df, grid_style=style)
-            if report_type == 'estar':
-                # todo: implement estar text
-                #   probably dependent on how get_on_mode_df implements
-                #   potentially include within same function
-                pass
-            else:
-                on_mode_tests.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
-
-            # display power limit functions below on mode table
-            limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
-            on_mode_tests.create_element('default limit function', limit_func_strings['default'])
-            on_mode_tests.create_element('brightest limit function', limit_func_strings['brightest'])
-            if hdr:
-                on_mode_tests.create_element('hdr limit function', limit_func_strings['hdr'])
-
-            # add scatter plot for each pps showing tv power measurements in relation to the relevant limit function line
-            for pps in ['default', 'brightest']:
-                on_mode_tests.create_element(
-                    f'{pps} dimming plot',
-                    plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
-                )
-            if hdr:
-                on_mode_tests.create_element(
-                    'hdr dimming plot',
-                    plots.dimming_line_scatter('hdr', rsdf, area, limit_funcs)
-                )
+            @skip_and_warn
+            def add_on_mode_tests(report):
+                table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
+                style = on_mode_df_style(on_mode_df, report_type)
+                on_mode_tests.create_element('on mode table', table_df, grid_style=style)
+                if report_type == 'estar':
+                    # todo: implement estar text
+                    #   probably dependent on how get_on_mode_df implements
+                    #   potentially include within same function
+                    pass
+                else:
+                    on_mode_tests.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
+                
+                # display power limit functions below on mode table
+                limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
+                on_mode_tests.create_element('default limit function', limit_func_strings['default'])
+                on_mode_tests.create_element('brightest limit function', limit_func_strings['brightest'])
+                if hdr:
+                    on_mode_tests.create_element('hdr limit function', limit_func_strings['hdr'])
+                
+                # add scatter plot for each pps showing tv power measurements in relation to the relevant limit function line
+                for pps in ['default', 'brightest']:
+                    on_mode_tests.create_element(
+                        f'{pps} dimming plot',
+                        plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
+                    )
+                if hdr:
+                    on_mode_tests.create_element(
+                        'hdr dimming plot',
+                        plots.dimming_line_scatter('hdr', rsdf, area, limit_funcs)
+                    )
+            add_on_mode_tests(report)
         with cat.new_section('Standby') as standby:
             # add standby table
-            
-            table_df = clean_rsdf(standby_df, standby_df.columns)
-            standby.create_element('table', table_df, grid_style=standby_df_style(standby_df))
+            @skip_and_warn
+            def add_standby(report):
+                table_df = clean_rsdf(standby_df, standby_df.columns)
+                standby.create_element('table', table_df, grid_style=standby_df_style(standby_df))
+                
+                # show standby wake times below standby table
+                standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
+                s = '<b>Time to Wake from Standby</b><br />'
+                s += '<br />'.join([f"{test}: {waketimes[test]} seconds" for test in standby_tests])
+                standby.create_element('waketimes', s)
+                
+                # time vs power (line) plot showing all standby tests
+                standby.create_element('standby_plot', plots.standby(merged_df, standby_tests))
+            add_standby(report)
+    return report
 
-            # show standby wake times below standby table
-            standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
-            s = '<b>Time to Wake from Standby</b><br />'
-            s += '<br />'.join([f"{test}: {waketimes[test]} seconds" for test in standby_tests])
-            standby.create_element('waketimes', s)
-
-            # time vs power (line) plot showing all standby tests
-            standby.create_element('standby_plot', plots.standby(merged_df, standby_tests))
-
+@skip_and_warn
+def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_type, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
-        with supp.new_section('Stabilization') as stab:
-            # table and line plot showing stabilization tests
-            stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
-            table_df = clean_rsdf(rsdf.query('test_name.isin(@stab_tests)'))
-            stab.create_element('table', table_df)
-            stab.create_element('plot', plots.stabilization(merged_df, stab_tests))
-
+        @skip_and_warn
+        def add_stabilization(report):
+            with supp.new_section('Stabilization') as stab:
+                # table and line plot showing stabilization tests
+                stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
+                table_df = clean_rsdf(rsdf.query('test_name.isin(@stab_tests)'))
+                stab.create_element('table', table_df)
+                stab.create_element('plot', plots.stabilization(merged_df, stab_tests))
+        add_stabilization(report)
+        
         with supp.new_section("APL' vs Power Charts", page_break=False)as apl_power:
             # APL vs power scatter plots for each pps (w/ line of best fit)
-            with apl_power.new_section('Default PPS: SDR') as default:
-                table_df = clean_rsdf(rsdf.query('test_name=="default"'))
-                default.create_element('table', table_df)
-                default.create_element('plot', plots.apl_watts_scatter(merged_df, 'default'))
-            with apl_power.new_section('Brightest PPS: SDR') as brightest:
-                table_df = clean_rsdf(rsdf.query('test_name=="brightest"'))
-                brightest.create_element('table', table_df)
-                brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'brightest'))
-
-            if hdr:
-                with apl_power.new_section('Default PPS: HDR') as brightest:
-                    table_df = clean_rsdf(rsdf[rsdf['test_name'] == 'hdr'])
+            @skip_and_warn
+            def add_apl_power(report):
+                with apl_power.new_section('Default PPS: SDR') as default:
+                    table_df = clean_rsdf(rsdf.query('test_name=="default"'))
+                    default.create_element('table', table_df)
+                    default.create_element('plot', plots.apl_watts_scatter(merged_df, 'default'))
+                with apl_power.new_section('Brightest PPS: SDR') as brightest:
+                    table_df = clean_rsdf(rsdf.query('test_name=="brightest"'))
                     brightest.create_element('table', table_df)
-                    brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'hdr'))
-
+                    brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'brightest'))
+                
+                if hdr:
+                    with apl_power.new_section('Default PPS: HDR') as brightest:
+                        table_df = clean_rsdf(rsdf[rsdf['test_name'] == 'hdr'])
+                        brightest.create_element('table', table_df)
+                        brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'hdr'))
+            add_apl_power(report)
         with supp.new_section('Light Directionality', page_break=False) as ld:
-            with ld.new_section("Average Luminance Along TV's Horizontal Axis", numbering=False) as x_nits:
-                x_nits.create_element('x nits plot', plots.x_nits(lum_df))
-            with ld.new_section("Average Luminance Along TV's Vertical Axis", numbering=False) as y_nits:
-                y_nits.create_element('y nits plot', plots.y_nits(lum_df))
-            with ld.new_section('Luminance Heatmap', numbering=False) as heatmap:
-                heatmap.create_element('heatmap', plots.nits_heatmap(lum_df))
+            @skip_and_warn
+            def add_light_directinality(report):
+                with ld.new_section("Average Luminance Along TV's Horizontal Axis", numbering=False) as x_nits:
+                    x_nits.create_element('x nits plot', plots.x_nits(lum_df))
+                with ld.new_section("Average Luminance Along TV's Vertical Axis", numbering=False) as y_nits:
+                    y_nits.create_element('y nits plot', plots.y_nits(lum_df))
+                with ld.new_section('Luminance Heatmap', numbering=False) as heatmap:
+                    heatmap.create_element('heatmap', plots.nits_heatmap(lum_df))
+
+            add_light_directinality(report)
         
         # todo: add spectral profile section for PCL tests
         if report_type == 'pcl':
-            with supp.new_section('Spectral Power Distribution') as spd:
-                spd.create_element('spectral plot', plots.spectral_power_distribution(spectral_df))
-                spd.create_element('chromaticity plot', plots.chromaticity(spectral_df))
-                # todo chromaticity table
+            @skip_and_warn
+            def add_spectral_power_distribution(report):
+                with supp.new_section('Spectral Power Distribution') as spd:
+                    spd.create_element('spectral plot', plots.spectral_power_distribution(spectral_df))
+                    spd.create_element('chromaticity plot', plots.chromaticity(spectral_df))
+                    # todo chromaticity table
+            add_spectral_power_distribution(report)
+    return report
 
+@skip_and_warn
+def add_test_results_table(report, rsdf, **kwargs):
     # Test Results Table
     with report.new_section('Test Results Table') as table:
         table.create_element('table', clean_rsdf(rsdf))
-    # All Plots
+    return report
+
+@skip_and_warn
+def add_test_results_plots(report, rsdf, merged_df, **kwargs):
+    '''Test Specifics section displays test metadata and tv specs in table'''
     with report.new_section('Test Result Plots', page_break=False) as trp:
         for test_name in rsdf['test_name']:
             tdf = merged_df.query('test_name==@test_name').reset_index()
@@ -356,20 +377,53 @@ def make_report(data_folder, report_type, merged_df, hdr, limit_funcs, waketimes
                 table_df = clean_rsdf(rsdf.query('test_name==@test_name'))
                 tn.create_element(f'{test_name} table', table_df, save=False)
                 tn.create_element(f'{test_name} plot', plots.standard(tdf))
+    return report
 
-    # build the pdf document
-    report_name = {'estar': 'ENERGYSTAR-report.pdf',
-                   'alternative-report.pdf': 'alternative',
-                   'pcl': 'pcl-report.pdf'}.get(report_type)
-    path_str = str(Path(data_folder).joinpath(report_name))
+@skip_and_warn
+def add_test_specs(report, test_specs_df, **kwargs):
+    with report.new_section('Test Specifics') as test_specs:
+        style = [
+            ('BACKGROUND', (0, 0), (0, -1), 'lightgrey'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
+            ('GRID', (0, 0), (-1, -1), 0.25, 'black'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+        test_specs.create_element('test spec table', test_specs_df.reset_index(), grid_style=style, header=False)
+    return report
 
+def get_content_page(model, test_date):
     def content_page(canvas, doc):
         canvas.saveState()
         canvas.setFont('Calibri', 12)
-        canvas.drawRightString(7.5 * inch, .8 * inch, "Page %d | %s   %s" % (doc.page, model, test_date))
+        canvas.drawRightString(7.5*inch, .8*inch, "Page %d | %s   %s" % (doc.page, model, test_date))
         canvas.restoreState()
+    return content_page
+
+
+def build_report(report, report_name, data_folder, model, test_date, **kwargs):
+    content_page = get_content_page(model, test_date)
+    path_str = str(Path(data_folder).joinpath(report_name))
     doc = rls.make_doc(path_str, font='Calibri', title_page=title_page, content_page=content_page)
     doc.multiBuild(report.story())
+    
+    
+def make_report(report_data):
+    """Create the pdf report from the test data."""
+    report = ISection(name='report')
+    report = add_test_specs(report, **report_data)
+    if report_data['report_type'] == 'pcl':
+        report = add_persistence_summary(report, **report_data)
+
+    report = add_compliance_section(report, **report_data)
+    report = add_supplemental(report, **report_data)
+    report = add_test_results_table(report, **report_data)
+    report = add_test_results_plots(report, **report_data)
+    
+    report_name = {'estar': 'ENERGYSTAR-report.pdf',
+                   'alternative-report.pdf': 'alternative',
+                   'pcl': 'pcl-report.pdf'}.get(report_data['report_type'])
+    build_report(report, report_name, report_data['model'], report_data['test_date'])
 
 
 def main():
@@ -377,7 +431,7 @@ def main():
     ISection.save_content_dir = Path(data_folder).joinpath('Elements')
     paths = ff.get_paths(data_folder)
     report_data = get_report_data(paths, data_folder, docopt_args)
-    make_report(**report_data)
+    make_report(report_data)
 
 
 if __name__ == '__main__':

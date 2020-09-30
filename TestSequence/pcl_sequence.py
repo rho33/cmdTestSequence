@@ -13,7 +13,7 @@ import command_sequence as cs
 
 sys.path.append('..')
 import logfuncs as lf
-from error_popups import error_popup
+from error_handling import error_popup
 
 
 blank_entry_msg = lambda path, entry: f'Error in {path}\n\n"{entry}" cannot be blank.\nPress OK when error has been corrected.\nRemember to save.'

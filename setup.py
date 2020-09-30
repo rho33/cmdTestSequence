@@ -41,7 +41,7 @@ build_exe_options = {
     "path": sys.path + ['TestSequence'],
     "includes": ['pandas', 'docopt','matplotlib', 'matplotlib.backends.backend_tkagg', 'seaborn', 'scipy.ndimage._ni_support',
                  'seaborn.cm', 'scipy', 'scipy.spatial.ckdtree', 'scipy.sparse.csgraph._validation', 'TestSequence/sequence',
-                 'multiprocessing.pool', 'sklearn.preprocessing'],
+                 'multiprocessing.pool', 'sklearn.preprocessing', 'mpl_toolkits'],
 }
 
 # GUI applications require a different base on Windows (the default is for a
@@ -70,6 +70,7 @@ copyfile(r'Report\intro-text.csv', r'build\exe.win-amd64-3.6\intro-text.csv')
 copyfile(r'CCF\ccf-input-template.csv', r'build\exe.win-amd64-3.6\ccf-input-template.csv')
 copyfile(r'CCF\rgb_distribution_sdr.csv', r'build\exe.win-amd64-3.6\rgb_distribution_sdr.csv')
 copyfile(r'CCF\rgb_distribution_hdr.csv', r'build\exe.win-amd64-3.6\rgb_distribution_hdr.csv')
+copyfile(r'Report\power-cap-coeffs.csv', r'build\exe.win-amd64-3.6\power-cap-coeffs.csv')
 
 src, dst = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\APL', r'build\exe.win-amd64-3.6\APL'
 if not os.path.isdir(dst):

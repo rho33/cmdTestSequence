@@ -143,10 +143,15 @@ def apl_watts_scatter(df, test_names):
     ax.scatter(tdf["APL'"], tdf['watts'])
 
     # change 0 APL to .1 to avoid errors in polyfit function
-    for i in list(tdf[tdf["APL'"] == 0].index):
+    for i in list(tdf[tdf["APL'"] <= 0].index):
         tdf.loc[i, "APL'"] = .1
+    
+    try:
+        # this sometimes throws an SVD did not converge error the first time it's run but not the second??
+        a, b = np.polyfit(tdf["APL'"].values, tdf['watts'].values, 1)
+    except:
+        a, b = np.polyfit(tdf["APL'"].values, tdf['watts'].values, 1)
 
-    a, b = np.polyfit(tdf["APL'"], tdf['watts'], 1)
     ax.plot(sorted(tdf["APL'"]), a * np.array((sorted(tdf["APL'"]))) + b, color='red')
     #     settings = ['video', 'preset_picture', 'abc', 'mdd']
     #     settings_box(settings, tdf)
@@ -254,9 +259,8 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
     xs = np.arange(min_lum, max_lum, .1)
     ys = [limit_func(area=area, luminance=i) for i in xs]
     plt.plot(xs, ys, color='tab:orange')
-        
-    screen_size = 55 # todo: implement screen size
-    handle = mlines.Line2D([], [], linewidth=1, label=f'{screen_size}" Limit', color='tab:orange')
+    
+    handle = mlines.Line2D([], [], linewidth=1, label=f'Power Limit', color='tab:orange')
     handles.append(handle)
 
     plt.xlim(min_lum, max_lum)

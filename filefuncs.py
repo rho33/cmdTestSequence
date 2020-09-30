@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from functools import partial
 import warnings
-from error_popups import permission_popup
+from error_handling import permission_popup
 
 
 @permission_popup

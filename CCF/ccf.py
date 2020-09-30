@@ -14,7 +14,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from docopt import docopt
 sys.path.append('..')
-from error_popups import permission_popup
+from error_handling import permission_popup
 import logfuncs as lf
 
 @lf.log_output
