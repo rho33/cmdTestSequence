@@ -1,5 +1,6 @@
 import sys
 import distutils
+from pathlib import Path
 from shutil import copyfile, copytree, move
 from cx_Freeze import setup, Executable
 import os
@@ -71,6 +72,8 @@ copyfile(r'CCF\ccf-input-template.csv', r'build\exe.win-amd64-3.6\ccf-input-temp
 copyfile(r'CCF\rgb_distribution_sdr.csv', r'build\exe.win-amd64-3.6\rgb_distribution_sdr.csv')
 copyfile(r'CCF\rgb_distribution_hdr.csv', r'build\exe.win-amd64-3.6\rgb_distribution_hdr.csv')
 copyfile(r'Report\power-cap-coeffs.csv', r'build\exe.win-amd64-3.6\power-cap-coeffs.csv')
+Path(r'build\exe.win-amd64-3.6\Simple').mkdir(exist_ok=True)
+copyfile(r'TestSequence\simple.txt', r'build\exe.win-amd64-3.6\Simple\simple.txt')
 
 src, dst = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\APL', r'build\exe.win-amd64-3.6\APL'
 if not os.path.isdir(dst):
