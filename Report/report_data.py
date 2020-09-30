@@ -214,7 +214,21 @@ def get_spectral_df(paths):
 @except_none_log
 def get_lum_df(paths):
     return pd.read_csv(paths['lum_profile'], header=None)
+
+
+def get_ccf_df(merged_df, data_folder):
+    ccf_df = pd.DataFrame(columns=['test_name', 'grey1', 'grey2', 'grey3', 'grey4', 'grey5'])
+    manual_ccf_tests = [test_name for test_name in merged_df.test_name.unique() if 'manual_ccf' in test_name]
+    for test_name in manual_ccf_tests:
+        tdf = merged_df.query('test_name==@test_name').copy()
+        row = {f'grey{i + 1}': tdf['nits'].iloc[i * 40 + 19:i * 40 + 24].mean() for i in range(len(tdf) // 40)}
+        row['test_name'] = test_name
+        ccf_df = ccf_df.append(row, ignore_index=True)
     
+    path = Path(data_folder).joinpath('ccf-summary.csv')
+    ccf_df.to_csv(path, index=False)
+
+
 def get_report_data(paths, data_folder, docopt_args):
     data = {}
     data['data_folder'] = data_folder
