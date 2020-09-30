@@ -120,3 +120,6 @@ ref_ccf_hdr10_default,,ccf,hdr10_default,off,default_level,,off,,ref_ccf:hdr10_d
 camera_ccf_default,,ccf,default,off,default_level,,off,,camera_ccf:default,default
 camera_ccf_brightest,,ccf,brightest,off,default_level,,off,,camera_ccf:brightest,brightest
 camera_ccf_hdr10_default,,ccf,hdr10_default,off,default_level,,off,,camera_ccf:hdr10_default,hdr10_default
+manual_ccf_default,200,sdr_ccf,default,off,default_level,,off,,peak_test:.1,
+manual_ccf_brightest,200,sdr_ccf,brightest,off,default_level,,off,,peak_test:.1,
+manual_ccf_hdr,200,hdr_ccf,hdr10_default,off,default_level,,off,,peak_test:.1,
