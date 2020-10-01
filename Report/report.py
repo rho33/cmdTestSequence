@@ -432,7 +432,7 @@ def main():
     
     if Path(sys.path[0]).joinpath('simple.txt').exists():
         merged_df = rd.get_merged_df(paths, data_folder)
-        rd.get_results_summary_df(merged_df, data_folder)
+        rd.get_results_summary_df(merged_df, data_folder, waketimes={})
         rd.get_ccf_df(merged_df, data_folder)
     else:
         report_data = rd.get_report_data(paths, data_folder, docopt_args)
