@@ -108,38 +108,42 @@ def clean_rsdf(rsdf, cols=None):
     return cdf
 
 
-def title_page(canvas, doc):
-    """Create a custom title page for the reportlab pdf doc."""
-    canvas.saveState()
-
-    pcl_logo_width, pcl_logo_height = 1.33*inch*1.35, 1.43*inch*1.35
-    pcl_logo_x = 306 - pcl_logo_width/2
-    pcl_logo_y = 2*inch
-    pcl_logo_path = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\images\pcl-logo.jpg'
-    canvas.drawImage(pcl_logo_path, pcl_logo_x, pcl_logo_y, width=pcl_logo_width, height=pcl_logo_height,
-                     preserveAspectRatio=True)
-
-    neea_logo_width, neea_logo_height = 1.24*inch, .82*inch
-    neea_logo_y = 5*inch
-    neea_logo_x = 306 - neea_logo_width/2
-    neea_logo_path = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\images\neea.png'
-    canvas.drawImage(neea_logo_path, neea_logo_x, neea_logo_y, width=neea_logo_width, height=neea_logo_height,
-                     preserveAspectRatio=True)
-    font='Calibri'
-    model='Demo Model'
-    canvas.setFont(font, 36)
-    title_y = 600
-    canvas.drawCentredString(306, title_y, 'TV Power Measurement Report')
-    canvas.setFont(font, 22)
-    canvas.drawCentredString(306, title_y-50, 'Model: {}'.format(model))
-    canvas.line(x1=inch, x2=7.5*inch, y1=title_y+37, y2=title_y+37)
-    canvas.line(x1=inch, x2=7.5 * inch, y1=title_y - 67, y2=title_y - 67)
-    canvas.setFont('Calibri-Bold', 20)
-    canvas.drawCentredString(306, neea_logo_y+neea_logo_height+.25*inch, 'Funded By:')
-    canvas.drawCentredString(306, pcl_logo_y + pcl_logo_height, 'Prepared By:')
-
-    canvas.setFont(font, 16)
-    canvas.restoreState()
+def get_title_page(report_title, model):
+    if report_title is None:
+        report_title = 'TV Power Measurement Report'
+    def title_page(canvas, doc):
+        """Create a custom title page for the reportlab pdf doc."""
+        canvas.saveState()
+    
+        pcl_logo_width, pcl_logo_height = 1.33*inch*1.35, 1.43*inch*1.35
+        pcl_logo_x = 306 - pcl_logo_width/2
+        pcl_logo_y = 2*inch
+        pcl_logo_path = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\images\pcl-logo.jpg'
+        canvas.drawImage(pcl_logo_path, pcl_logo_x, pcl_logo_y, width=pcl_logo_width, height=pcl_logo_height,
+                         preserveAspectRatio=True)
+    
+        neea_logo_width, neea_logo_height = 1.24*inch, .82*inch
+        neea_logo_y = 5*inch
+        neea_logo_x = 306 - neea_logo_width/2
+        neea_logo_path = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\images\neea.png'
+        canvas.drawImage(neea_logo_path, neea_logo_x, neea_logo_y, width=neea_logo_width, height=neea_logo_height,
+                         preserveAspectRatio=True)
+        font='Calibri'
+        canvas.setFont(font, 36)
+        title_y = 600
+        canvas.drawCentredString(306, title_y, report_title)
+        canvas.setFont(font, 22)
+        canvas.drawCentredString(306, title_y-50, f'Model: {model}')
+        canvas.line(x1=inch, x2=7.5*inch, y1=title_y+37, y2=title_y+37)
+        canvas.line(x1=inch, x2=7.5 * inch, y1=title_y - 67, y2=title_y - 67)
+        canvas.setFont('Calibri-Bold', 20)
+        canvas.drawCentredString(306, neea_logo_y+neea_logo_height+.25*inch, 'Funded By:')
+        canvas.drawCentredString(306, pcl_logo_y + pcl_logo_height, 'Prepared By:')
+    
+        canvas.setFont(font, 16)
+        canvas.restoreState()
+    
+    return title_page
     
     
 def on_mode_df_style(on_mode_df, report_type):
@@ -303,6 +307,21 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
     return report
 
 @skip_and_warn
+def add_apl_power(report, test_name, merged_df, rsdf, section_name=None, **kwargs):
+    table_df = rsdf.query('test_name==@test_name')
+    if not section_name:
+        tag = table_df.index[0]
+        if tag.is_integer():
+            tag = int(tag)
+        section_name = f'Test {tag} - {test_name}'
+
+    with report.new_section(section_name) as section:
+        table_df = clean_rsdf(table_df)
+        section.create_element('table', table_df, save=False)
+        section.create_element(f'{section_name}plot', plots.apl_watts_scatter(merged_df, test_name))
+    return report
+
+@skip_and_warn
 def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_type, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
         @skip_and_warn
@@ -317,23 +336,10 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_t
         
         with supp.new_section("APL' vs Power Charts", page_break=False)as apl_power:
             # APL vs power scatter plots for each pps (w/ line of best fit)
-            @skip_and_warn
-            def add_apl_power(report):
-                with apl_power.new_section('Default PPS: SDR') as default:
-                    table_df = clean_rsdf(rsdf.query('test_name=="default"'))
-                    default.create_element('table', table_df)
-                    default.create_element('plot', plots.apl_watts_scatter(merged_df, 'default'))
-                with apl_power.new_section('Brightest PPS: SDR') as brightest:
-                    table_df = clean_rsdf(rsdf.query('test_name=="brightest"'))
-                    brightest.create_element('table', table_df)
-                    brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'brightest'))
-                
-                if hdr:
-                    with apl_power.new_section('Default PPS: HDR') as brightest:
-                        table_df = clean_rsdf(rsdf[rsdf['test_name'] == 'hdr'])
-                        brightest.create_element('table', table_df)
-                        brightest.create_element('plot', plots.apl_watts_scatter(merged_df, 'hdr'))
-            add_apl_power(report)
+            apl_power = add_apl_power(apl_power, 'default', merged_df, rsdf, section_name='Default PPS: SDR')
+            apl_power = add_apl_power(apl_power, 'brightest', merged_df, rsdf, section_name='Brightest PPS: SDR')
+            if hdr:
+                apl_power = add_apl_power(apl_power, 'hdr10', merged_df, rsdf, section_name='Default PPS: HDR')
         with supp.new_section('Light Directionality', page_break=False) as ld:
             @skip_and_warn
             def add_light_directinality(report):
@@ -401,9 +407,10 @@ def get_content_page(model, test_date):
     return content_page
 
 
-def build_report(report, report_name, data_folder, model, test_date, **kwargs):
+def build_report(report,  filename, data_folder, model, test_date, report_title=None, **kwargs):
     content_page = get_content_page(model, test_date)
-    path_str = str(Path(data_folder).joinpath(report_name))
+    title_page = get_title_page(report_title, model)
+    path_str = str(Path(data_folder).joinpath(filename))
     doc = rls.make_doc(path_str, font='Calibri', title_page=title_page, content_page=content_page)
     doc.multiBuild(report.story())
     
@@ -420,10 +427,10 @@ def make_report(report_data):
     report = add_test_results_table(report, **report_data)
     report = add_test_results_plots(report, **report_data)
     
-    report_name = {'estar': 'ENERGYSTAR-report.pdf',
+    filename = {'estar': 'ENERGYSTAR-report.pdf',
                    'alternative-report.pdf': 'alternative',
                    'pcl': 'pcl-report.pdf'}.get(report_data['report_type'])
-    build_report(report, report_name, report_data['model'], report_data['test_date'])
+    build_report(report, filename, report_data['data_folder'], report_data['model'], report_data['test_date'])
 
 
 def main():
