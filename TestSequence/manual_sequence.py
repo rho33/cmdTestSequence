@@ -15,7 +15,6 @@ def main():
     test_seq_df = pd.read_csv(Path(sys.path[0]).joinpath('manual-sequence.csv'))
     command_df = create_command_df(test_seq_df)
     save_sequences(test_seq_df, command_df, data_folder)
-    pass
 
 
 if __name__ == '__main__':
