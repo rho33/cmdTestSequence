@@ -234,7 +234,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['data_folder'] = data_folder
     data['report_type'] = get_report_type(docopt_args, data_folder)
     data['merged_df'] = get_merged_df(paths, data_folder)
-    data['hdr'] = 'hdr' in data['merged_df'].test_name.unique()
+    data['hdr'] = 'hdr10' in data['merged_df'].test_name.unique() or 'hdr' in data['merged_df'].test_name.unique()
     data['limit_funcs'] = get_limit_funcs(data['report_type'])
     if data['report_type']=='pcl':
         data['persistence_dfs'] = get_persistence_dfs(paths)
@@ -253,3 +253,28 @@ def get_report_data(paths, data_folder, docopt_args):
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['lum_df'] = get_lum_df(paths)
     return data
+
+
+def check_report_data(report_data, expected_data):
+    data_items = {
+        'report_type': 'report type',
+        'merged_df': 'merged time series data (merged.csv)',
+        'hdr': 'hdr capability',
+        'limit_funcs': 'power limit equations',
+        'persistence_dfs': 'ABC/MDD persistence tables',
+        'spectral_df': 'spectral distribution data',
+        'waketimes': 'standby waketimes',
+        'rsdf': 'results summary table',
+        'test_specs_df': 'test specifics table',
+        'test_date': 'date of testing',
+        'area': 'screen area',
+        'model': 'television model number',
+        'on_mode_df': 'on mode compliance table',
+        'standby_df': 'standby compliance table',
+        'lum_df': 'luminance profile'
+    }
+    warnings.filterwarnings('always', category=UserWarning)
+    for item in expected_data:
+        if item not in report_data.keys():
+            msg = f'\nMissing Data Item:\n\tCould not construct/identify {data_items.get(item, "**unknown data item**")}\n\nReport may be incomplete.'
+            warnings.warn(msg)
