@@ -86,12 +86,13 @@ def add_apl_data(df):
     return df
 
 
-def remove_rows_rewind(df):
-    start_tag_seq_df = df[df['Tag']!=df['Tag'].shift(1)].dropna(subset=['Tag'])
-    duplicate_start = start_tag_seq_df[start_tag_seq_df['Tag'].duplicated(keep='last')].index.values
+def remove_rows_rewind(df, col='Tag'):
 
-    end_tag_seq_df = df[df['Tag']!=df['Tag'].shift(-1)].dropna(subset=['Tag'])
-    duplicate_end = end_tag_seq_df[end_tag_seq_df['Tag'].duplicated(keep='last')].index.values + 1
+    start_tag_seq_df = df[df[col]!=df[col].shift(1)].dropna(subset=[col])
+    duplicate_start = start_tag_seq_df[start_tag_seq_df[col].duplicated(keep='last')].index.values
+
+    end_tag_seq_df = df[df[col]!=df[col].shift(-1)].dropna(subset=[col])
+    duplicate_end = end_tag_seq_df[end_tag_seq_df[col].duplicated(keep='last')].index.values + 1
 
     remove_rows = []
     for start, end in zip(duplicate_start, duplicate_end):

@@ -7,6 +7,7 @@ import pandas as pd
 import merge
 sys.path.append('..')
 from error_handling import permission_popup, except_none_log
+from filefuncs import archive
 
 @except_none_log
 def get_test_specs_df(merged_df, paths, report_type):
@@ -200,6 +201,15 @@ def get_merged_df(paths, data_folder):
     test_seq_df = pd.read_csv(paths['test_seq'])
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
     merged_df = merge.merge_test_data(test_seq_df, data_df)
+    
+    if paths['old_merged'] is not None:
+        old_merged_df = pd.read_csv(paths['old_merged'])
+        archive(paths['old_merged'])
+        old_merged_df = old_merged_df.append({'test_name':-1}, ignore_index=True)
+        merged_df = pd.concat([old_merged_df, merged_df]).reset_index()[merged_df.columns]
+        merged_df = merge.remove_rows_rewind(merged_df, col='test_name')
+        merged_df = merged_df.query('test_name!=-1')
+        
     merged_df.to_csv(Path(data_folder).joinpath('merged.csv'), index=False)
     # todo: handle different report types
     return merged_df
