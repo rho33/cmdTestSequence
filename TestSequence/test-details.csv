@@ -26,8 +26,7 @@ hdr10_100,300,clasp_hdr,hdr10_default,on,default_level,100,off,,,hdr10_default
 hdr10_12,300,clasp_hdr,hdr10_default,on,default_level,12,off,,,hdr10_default
 hdr10_3,300,clasp_hdr,hdr10_default,on,default_level,3,off,,,hdr10_default
 hdr10_35,300,clasp_hdr,hdr10_default,on,default_level,35,off,,,hdr10_default
-hdr10_low_backlight,300,clasp_hdr,hdr10_default,"off
-",lowest_level,,off,,,hdr10_default
+hdr10_low_backlight,300,clasp_hdr,hdr10_default,off,lowest_level,,off,,,hdr10_default
 hdr10+,300,clasp_hdr10+,hdr10+_default,off,default_level,,off,,,hdr10_default
 hdr10+_100,300,clasp_hdr10+,hdr10+_default,on,default_level,100,off,,,hdr10_default
 hdr10+_12,300,clasp_hdr10+,hdr10+_default,on,default_level,12,off,,,hdr10_default

@@ -119,7 +119,7 @@ def lum_profile_message(row):
 def stabilization_message(row):
     """Create stabilization test(s) prompt."""
     message = message_heading(row)
-    extra += f'This test repeats until TV power output is stable or until {STAB_MAX_ITER} iterations is reached (minimum 2 iterations).\\n'
+    extra = f'This test repeats until TV power output is stable or until {STAB_MAX_ITER} iterations is reached (minimum 2 iterations).\\n'
     message += message_instructions(row, extra=extra)
     message += display_row_settings(row)
     return message
