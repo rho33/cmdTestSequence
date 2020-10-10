@@ -322,17 +322,29 @@ def add_apl_power(report, test_name, merged_df, rsdf, section_name=None, **kwarg
     return report
 
 @skip_and_warn
+def add_light_directionality(report, lum_df, **kwargs):
+    with report.new_section("Average Luminance Along TV's Horizontal Axis", numbering=False) as x_nits:
+        x_nits.create_element('x nits plot', plots.x_nits(lum_df))
+    with report.new_section("Average Luminance Along TV's Vertical Axis", numbering=False) as y_nits:
+        y_nits.create_element('y nits plot', plots.y_nits(lum_df))
+    with report.new_section('Luminance Heatmap', numbering=False) as heatmap:
+        heatmap.create_element('heatmap', plots.nits_heatmap(lum_df))
+    return report
+
+@skip_and_warn
+def add_overlay(report, rsdf, merged_df, test_names, **kwargs):
+    # table and line plot showing stabilization tests
+    table_df = clean_rsdf(rsdf.query('test_name.isin(@test_names)'))
+    report.create_element('table', table_df)
+    report.create_element('plot', plots.overlay(merged_df, test_names))
+
+
+@skip_and_warn
 def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_type, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
-        @skip_and_warn
-        def add_stabilization(report):
-            with supp.new_section('Stabilization') as stab:
-                # table and line plot showing stabilization tests
-                stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
-                table_df = clean_rsdf(rsdf.query('test_name.isin(@stab_tests)'))
-                stab.create_element('table', table_df)
-                stab.create_element('plot', plots.stabilization(merged_df, stab_tests))
-        add_stabilization(report)
+        with supp.new_section('Stabilization') as stab:
+            stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
+            stab = add_overlay(stab, rsdf, merged_df, stab_tests)
         
         with supp.new_section("APL' vs Power Charts", page_break=False)as apl_power:
             # APL vs power scatter plots for each pps (w/ line of best fit)
@@ -341,16 +353,7 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_t
             if hdr:
                 apl_power = add_apl_power(apl_power, 'hdr10', merged_df, rsdf, section_name='Default PPS: HDR')
         with supp.new_section('Light Directionality', page_break=False) as ld:
-            @skip_and_warn
-            def add_light_directinality(report):
-                with ld.new_section("Average Luminance Along TV's Horizontal Axis", numbering=False) as x_nits:
-                    x_nits.create_element('x nits plot', plots.x_nits(lum_df))
-                with ld.new_section("Average Luminance Along TV's Vertical Axis", numbering=False) as y_nits:
-                    y_nits.create_element('y nits plot', plots.y_nits(lum_df))
-                with ld.new_section('Luminance Heatmap', numbering=False) as heatmap:
-                    heatmap.create_element('heatmap', plots.nits_heatmap(lum_df))
-
-            add_light_directinality(report)
+            ld = add_light_directionality(ld, lum_df)
         
         # todo: add spectral profile section for PCL tests
         if report_type == 'pcl':
