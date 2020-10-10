@@ -341,7 +341,7 @@ class Section(Node):
         self.elements[name] = Element.from_content(content, **kw)
         if self.save_content_dir is not None and save:
             Path(self.save_content_dir).mkdir(exist_ok=True, parents=True)
-            save_path = Path(self.save_content_dir).joinpath(f"{name.replace(' ', '_')}")
+            save_path = Path(self.save_content_dir).joinpath(f"{name.replace(' ', '_').replace(':','')}")
             f = {
                 type(gcf()): f'content.savefig(r"{save_path}.png")',
                 type(pd.DataFrame()): f'content.to_csv(r"{save_path}.csv", index=False)'
