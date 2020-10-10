@@ -238,13 +238,29 @@ def get_ccf_df(merged_df, data_folder):
     path = Path(data_folder).joinpath('ccf-summary.csv')
     ccf_df.to_csv(path, index=False)
 
+@except_none_log
+def get_hdr(merged_df):
+    return 'hdr10' in merged_df.test_name.unique() or 'hdr' in merged_df.test_name.unique()
+
+@except_none_log
+def get_test_date(test_specs_df):
+    return pd.to_datetime(test_specs_df.loc['Test Start Date', 0]).date().strftime('%d-%b-%Y')
+
+@except_none_log
+def get_screen_area(test_specs_df):
+    return float(test_specs_df.loc['Screen Area (sq in)', 0])
+
+@except_none_log
+def get_model(test_specs_df):
+    return f"{str(test_specs_df.loc['Make', 0]).upper()} {str(test_specs_df.loc['Model', 0]).upper()}"
+
 
 def get_report_data(paths, data_folder, docopt_args):
     data = {}
     data['data_folder'] = data_folder
     data['report_type'] = get_report_type(docopt_args, data_folder)
     data['merged_df'] = get_merged_df(paths, data_folder)
-    data['hdr'] = 'hdr10' in data['merged_df'].test_name.unique() or 'hdr' in data['merged_df'].test_name.unique()
+    data['hdr'] = get_hdr(data['merged_df'])
     data['limit_funcs'] = get_limit_funcs(data['report_type'])
     if data['report_type']=='pcl':
         data['persistence_dfs'] = get_persistence_dfs(paths)
@@ -255,9 +271,9 @@ def get_report_data(paths, data_folder, docopt_args):
     data['waketimes'] = get_waketimes(paths)
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
     data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
-    data['test_date'] = pd.to_datetime(data['test_specs_df'].loc['Test Start Date', 0]).date().strftime('%d-%b-%Y')
-    data['area'] = float(data['test_specs_df'].loc['Screen Area (sq in)', 0])
-    data['model'] = f"{str(data['test_specs_df'].loc['Make', 0]).upper()} {str(data['test_specs_df'].loc['Model', 0]).upper()}"
+    data['test_date'] = get_test_date(data['test_specs_df'])
+    data['area'] = get_screen_area(data['test_specs_df'])
+    data['model'] = get_model(data['test_specs_df'])
     
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'])
     data['standby_df'] = get_standby_df(data['rsdf'])
