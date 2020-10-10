@@ -72,7 +72,7 @@ def standard(tdf):
     return fig
 
 
-def stabilization(df, test_names):
+def overlay(df, test_names):
     fig, ax = plt.subplots(figsize=(10, 7))
     series_list, labels = [], []
     colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:cyan', 'tab:pink']
