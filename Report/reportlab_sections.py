@@ -312,6 +312,7 @@ class Section(Node):
         self.elements = elements
         self.story_start = []
         self.page_break = page_break
+        # file path like string representing path to to node
         self.path_str = '/'.join([node.name for node in self.path])
 
     def __enter__(self):

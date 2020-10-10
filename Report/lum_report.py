@@ -20,6 +20,7 @@ import filefuncs as ff
 
 def make_lum_report(report_data):
     report = ISection(name='report')
+    # add test specifications to report if available
     if report_data['test_specs_df'] is not None:
         report = add_test_specs(report, **report_data)
     with report.new_section('Light Directionality', page_break=False) as ld:

@@ -26,11 +26,15 @@ from error_handling import skip_and_warn
 
 
 class ISection(rls.Section):
+    """rls.Sections subclass to allow adding introductory text (text at beginning of a section) from external file"""
+    
+    # read intro text csv into dictionary and save as class variable
+    # intro_text keys (first column of csv) should be node path ("/" separators) to desired report section
     intro_text = pd.read_csv(Path(sys.path[0]).joinpath('intro-text.csv'), index_col='section_path')['text'].replace(
         {np.nan: None}).to_dict()
-    # intro_text = pd.read_csv('intro-text.csv', index_col='section_title')['text'].replace({np.nan: None}).to_dict()
 
     def insert_intro_text(self):
+        """Check if intro text exists for current section and insert as element."""
         text = self.intro_text.get(self.path_str)
         if text:
             self.create_element('intro_text', text)
@@ -38,7 +42,7 @@ class ISection(rls.Section):
     def new_section(self, title, numbering=True, **kw):
         """Create and Return new child Section (subsection)."""
         new_section = type(self)(name=title, elements={}, parent=self, **kw)
-        new_section.elements['title'] = rls.Element.from_content(title, heading=True, numbering=numbering, level=self.depth + 1)
+        new_section.elements['title'] = rls.Element.from_content(title, heading=True, numbering=numbering, level=self.depth+1)
         new_section.insert_intro_text()
         return new_section
 
@@ -109,6 +113,7 @@ def clean_rsdf(rsdf, cols=None):
 
 
 def get_title_page(report_title, model):
+    """Wrap title page function to support title and model variables"""
     if report_title is None:
         report_title = 'TV Power Measurement Report'
     def title_page(canvas, doc):
@@ -147,6 +152,7 @@ def get_title_page(report_title, model):
     
     
 def on_mode_df_style(on_mode_df, report_type):
+    """Style (highlight) on mode compliance table based on content (pass/fail results)."""
     # todo implement estar boolean (report_type
     style = [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
     
@@ -186,6 +192,7 @@ def on_mode_df_style(on_mode_df, report_type):
 
 
 def standby_df_style(standby_df):
+    """Style (highlight) standby compliance table based on content (pass/fail results)."""
     style = []
     for i, val in enumerate(standby_df['watts']<standby_df['limit']):
         if val:
@@ -206,8 +213,8 @@ def standby_df_style(standby_df):
 
 
 def get_limit_func_strings(limit_funcs, hdr):
+    """Create strings to display the power limit functions within report."""
     def get_func_str(limit_func):
-        """Crete a string to display the power limit function."""
         coeffs = limit_func.keywords
         func_str = f"{coeffs['sf']:.2f}*(({coeffs['a']:.3f}*area+{coeffs['b']:.2f})*({coeffs['e']:.2f}*luminance+{coeffs['f']:.2f}) + {coeffs['c']:.2f}*area+{coeffs['d']:.2f})"
         if 'power_cap_func' in coeffs.keys():
@@ -225,6 +232,7 @@ def get_limit_func_strings(limit_funcs, hdr):
 
 @skip_and_warn
 def add_persistence_summary(report, persistence_dfs):
+    """Add section displaying persistence tables found in entry forms (for PCL testing only)"""
     with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
         
         with persistence_summary.new_section('SDR Persistence') as sdr_persistence:

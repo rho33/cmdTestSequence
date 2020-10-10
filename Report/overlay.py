@@ -18,6 +18,7 @@ import filefuncs as ff
 
 def make_overlay_report(report_data, test_names):
     report = ISection(name='report')
+    # add test specifications to report if available
     if report_data['test_specs_df'] is not None:
         report = add_test_specs(report, **report_data)
     with report.new_section('Overlay Chart') as oc:
@@ -29,9 +30,7 @@ def make_overlay_report(report_data, test_names):
 def main():
     logger, docopt_args, data_folder = lf.start_script(__doc__, 'lum_report.log')
     test_names = [docopt_args['<test_name1>'], docopt_args['<test_name2>']]
-    
     paths = ff.get_paths(data_folder)
-    
     report_data = get_report_data(paths, data_folder, docopt_args)
     expected_data = [
         'rsdf',
