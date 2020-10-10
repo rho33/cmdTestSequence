@@ -34,9 +34,12 @@ def start_script(doc, log_filename):
     logger = cwd_logger(log_filename)
     logger.info(sys.argv)
     docopt_args = docopt(doc)
-    data_folder = Path(docopt_args.get('<data_folder>'))
-    data_folder.mkdir(exist_ok=True)
-    add_logfile(logger, data_folder.joinpath(log_filename))
+    data_folder = docopt_args.get('<data_folder>')
+    if data_folder is not None:
+        data_folder = Path(docopt_args.get('<data_folder>'))
+        data_folder.mkdir(exist_ok=True)
+        add_logfile(logger, data_folder.joinpath(log_filename))
+        
     logger.info(sys.argv)
     logger.info(docopt_args)
     return logger, docopt_args, data_folder
