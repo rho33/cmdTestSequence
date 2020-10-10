@@ -23,8 +23,11 @@ RENAME_DICT = {
     'on': 'On',
 }
 
+STAB_MAX_ITER = 6
+
 # todo: manual sequence custom message
 def display_row_settings(row):
+    """Create test condition/settings portion of test prompt."""
     non_setting_cols = ['special_commands', 'tag', 'test_name', 'test_time']
     display_row = row.drop(non_setting_cols).dropna().rename(RENAME_DICT).replace(RENAME_DICT)
     s = '-'*80
@@ -40,13 +43,15 @@ def display_row_settings(row):
 
 
 def message_heading(current_row):
+    """Create message heading portion of test prompt."""
     message = f'Test Name: {current_row["test_name"]}\\nTest Tag: {current_row["tag"]}\\n'
     if pd.notnull(current_row['test_time']):
         message += f'Test Time (seconds): {int(current_row["test_time"])}\\n\\n'
     return message
 
 
-def message_instructions(current_row, previous_row=None, extra=None):
+def message_instructions(current_row, previous_row=None, extra=None, countdown=True):
+    """Create user instruction portion of test prompt."""
     setting_titles = {
         'mdd': 'motion detection dimming (MDD)',
         'abc': 'automatic brightness control (ABC)',
@@ -71,12 +76,14 @@ def message_instructions(current_row, previous_row=None, extra=None):
             elif col == 'video':
                 message += f'* Change the video clip to {test_clip}\\n'
             elif col == 'backlight' and change_val == 'lowest_level':
-                message += '* Lower the backlight setting to the lowest possible level\\n'
-    message += f'* When ready begin the {test_clip} clip and press the OK button when the countdown timer reaches 0.\\n\\n'
+                message += '* Lower the backlight setting to the lowest possible level and record this level.\\n'
+    if countdown:
+        message += f'* When ready begin the {test_clip} clip and press the OK button when the test clip content begins at the end of the countdown.\\n\\n'
     return message
 
 
 def user_message(i, test_seq_df):
+    """Create standard test prompt"""
     previous_row = test_seq_df.iloc[i - 1]
     current_row = test_seq_df.iloc[i]
     message = message_heading(current_row)
@@ -86,6 +93,7 @@ def user_message(i, test_seq_df):
 
 
 def waketime_message_start(row):
+    """Create waketime test prompt."""
     message = message_heading(row)
     message += '-' * 80
     message += '\\nInstructions:\\n\\n'
@@ -94,15 +102,13 @@ def waketime_message_start(row):
     message += '* A new message will appear asking you to press another button as soon as the TV has become responsive to input.'
     return message
 
-WT_MESSAGE1 = "Now that the standby test is complete we are going to measure wake time. Press the OK button at " \
-    "the same time as you press the power button to turn on the television. " \
-    "A new message will appear asking you to press another button as soon as the TV has become responsive to input."
 
-
+# Scecond (finishing) test prompt for waketime tests
 WT_MESSAGE2 = "As soon as the TV becomes responsive to input press the OK button."
 
 
 def lum_profile_message(row):
+    """Create lum profile test prompt."""
     message = message_heading(row)
     extra = '* Next we will capture the luminance profile of the TV.\\n'
     message += message_instructions(row, extra=extra)
@@ -111,15 +117,16 @@ def lum_profile_message(row):
 
 
 def stabilization_message(row):
+    """Create stabilization test(s) prompt."""
     message = message_heading(row)
-    extra = '* The following test will be a stabilization test.\\n'
-    extra += '* We will run these continually until we get two consecutive tests with average power within 2% of each other.\\n'
+    extra += f'This test repeats until TV power output is stable or until {STAB_MAX_ITER} iterations is reached (minimum 2 iterations).\\n'
     message += message_instructions(row, extra=extra)
     message += display_row_settings(row)
     return message
 
 
 def standby_message(row):
+    """Create standby test prompt."""
 
     message = message_heading(row)
     message += '-' * 80
@@ -139,15 +146,22 @@ def standby_message(row):
 
 
 def screen_config_message(row):
+    """Create screen_config test prompt."""
     message = message_heading(row)
     extra = '* Next we will configure the camera for the remaining tests.\\n'
-    message += message_instructions(row, extra=extra)
+    message += message_instructions(row, extra=extra, countdown=False)
+    message += "Press OK when the clip is on the screen with no overlay\\n\\n"
     message += display_row_settings(row)
     return message
 
 
 def create_command_df(test_seq_df):
+    """Create dataframe that will eventually to be saved to to command-sequence.csv and fed to Labview."""
+    
+    # command_rows is a list of tuples containing data to be turned into dataframe (each tuple is a row)
+    # command_rows always starts with these 6 1 column rows
     command_rows = [(i,) for i in ['#Config', 'Remote name', 'IR Delay (ms)', 'Macro File', '', '#Sequence']]
+    # for each test (row) in test_seq_df create the appropriate rows in command_rows
     for i, row in test_seq_df.iterrows():
         command_rows.append(('tag', row['tag']))
         if 'waketime' in row['test_name']:
@@ -163,7 +177,7 @@ def create_command_df(test_seq_df):
         elif 'standby' in row['test_name']:
             command_rows.append(('user_command', standby_message(row)))
         elif 'stabilization' in row['test_name']:
-            command_rows.append(('user_stabilization', stabilization_message(row), 300, 6))
+            command_rows.append(('user_stabilization', stabilization_message(row), 300, STAB_MAX_ITER))
         else:
             command_rows.append(('user_command', user_message(i, test_seq_df)))
 
