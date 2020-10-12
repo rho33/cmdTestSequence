@@ -61,6 +61,10 @@ setup(  name = "TV Test Report",
                        Executable(r"TestSequence\pcl_sequence.py", base=base),
                        Executable(r"TestSequence\repair_sequence.py", base=base),
                        Executable(r"CCF\ccf.py", base=base),
+                       Executable(r"Report\overlay.py", base=base),
+                       Executable(r"Report\lum_report.py", base=base),
+                       Executable(r"Report\basic_report.py", base=base),
+                       Executable(r"Report\compliance_report.py", base=base),
                        ]
         )
 # distutils.dir_util.copy_tree('build/exe.win-amd64-3.6', 'exe.win-amd64-3.6')

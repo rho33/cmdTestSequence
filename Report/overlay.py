@@ -16,6 +16,7 @@ from report import add_overlay, ISection, build_report, add_test_specs
 import logfuncs as lf
 import filefuncs as ff
 
+
 def make_overlay_report(report_data, test_names):
     report = ISection(name='report')
     # add test specifications to report if available
