@@ -1,17 +1,51 @@
 import sys
-import distutils
 from pathlib import Path
-from shutil import copyfile, copytree, move
 from cx_Freeze import setup, Executable
 import os
 from zipfile import ZipFile
-# import scipy
 
-sys.path.append(r'.\Report')
-# includefiles_list=[]
-# scipy_path = os.path.dirname(scipy.__file__)
-# includefiles_list.append(scipy_path)
+sys.path.append(str(Path(sys.path[0]).joinpath('src')))
 
+dst = Path(r'..\bin\build')
+build_exe_options = {
+    "packages": ['core'],
+    "includes": ['pandas', 'docopt','matplotlib', 'matplotlib.backends.backend_tkagg', 'seaborn', 'scipy.ndimage._ni_support',
+                 'seaborn.cm', 'scipy', 'scipy.spatial.ckdtree', 'scipy.sparse.csgraph._validation',
+                 'multiprocessing.pool', 'mpl_toolkits', 'core'],
+    "excludes": ['sqlite3', 'sklearn'],
+    "include_files": ['config', 'img'],
+    "build_exe": str(dst)
+}
+
+base = None
+if sys.platform == "win32":
+    base = "Console"
+
+setup(
+    options = {"build_exe": build_exe_options},
+    executables = [
+        Executable(r"report.py", base=base),
+        Executable(r"main_sequence.py", base=base),
+        Executable(r"manual_sequence.py", base=base),
+        Executable(r"pcl_sequence.py", base=base),
+        Executable(r"repair_sequence.py", base=base),
+        Executable(r"ccf.py", base=base),
+        Executable(r"overlay.py", base=base),
+        Executable(r"lum_report.py", base=base),
+        Executable(r"basic_report.py", base=base),
+        Executable(r"compliance_report.py", base=base),
+        Executable(r"apl_power_charts.py", base=base),
+    ]
+)
+# cx_freeze randomly capitalizes some folders/file names which then causes errors.
+ckd = dst.joinpath(r'lib\scipy\spatial\cKDTree.cp36-win_amd64.pyd')
+ckd.rename(ckd.parent.joinpath('ckdtree.cp36-win_amd64.pyd'))
+
+pool = dst.joinpath(r'lib\multiprocessing\Pool.pyc')
+pool.rename(pool.parent.joinpath('pool.pyc'))
+
+tkinter = dst.joinpath(r'lib\Tkinter')
+tkinter.rename(tkinter.parent.joinpath('tkinter'))
 
 def zipdir(directory, destination=None):
     # path to folder which needs to be zipped
@@ -35,61 +69,4 @@ def zipdir(directory, destination=None):
         for file in file_paths:
             zip.write(file)
     print('All files zipped successfully!')
-
-
-# Dependencies are automatically detected, but it might need fine tuning.
-build_exe_options = {
-    "path": sys.path + ['TestSequence'],
-    "includes": ['pandas', 'docopt','matplotlib', 'matplotlib.backends.backend_tkagg', 'seaborn', 'scipy.ndimage._ni_support',
-                 'seaborn.cm', 'scipy', 'scipy.spatial.ckdtree', 'scipy.sparse.csgraph._validation', 'TestSequence/sequence',
-                 'multiprocessing.pool', 'sklearn.preprocessing', 'mpl_toolkits'],
-}
-
-# GUI applications require a different base on Windows (the default is for a
-# console application).
-base = None
-if sys.platform == "win32":
-    base = "Console"
-
-setup(  name = "TV Test Report",
-        version = "0.1",
-        description = 'Creates pdf report from test results',
-        options = {"build_exe": build_exe_options},
-        executables = [Executable(r"Report\report.py", base=base),
-                       Executable(r"TestSequence\main_sequence.py", base=base),
-                       Executable(r"TestSequence\manual_sequence.py", base=base),
-                       Executable(r"TestSequence\pcl_sequence.py", base=base),
-                       Executable(r"TestSequence\repair_sequence.py", base=base),
-                       Executable(r"CCF\ccf.py", base=base),
-                       Executable(r"Report\overlay.py", base=base),
-                       Executable(r"Report\lum_report.py", base=base),
-                       Executable(r"Report\basic_report.py", base=base),
-                       Executable(r"Report\compliance_report.py", base=base),
-                       ]
-        )
-# distutils.dir_util.copy_tree('build/exe.win-amd64-3.6', 'exe.win-amd64-3.6')
-copyfile(r'TestSequence\test-details.csv', r'build\exe.win-amd64-3.6\test-details.csv')
-copyfile(r'TestSequence\entry-forms.xlsx', r'build\exe.win-amd64-3.6\entry-forms.xlsx')
-copyfile(r'Report\coeffs.csv', r'build\exe.win-amd64-3.6\coeffs.csv')
-copyfile(r'Report\intro-text.csv', r'build\exe.win-amd64-3.6\intro-text.csv')
-copyfile(r'CCF\ccf-input-template.csv', r'build\exe.win-amd64-3.6\ccf-input-template.csv')
-copyfile(r'CCF\rgb_distribution_sdr.csv', r'build\exe.win-amd64-3.6\rgb_distribution_sdr.csv')
-copyfile(r'CCF\rgb_distribution_hdr.csv', r'build\exe.win-amd64-3.6\rgb_distribution_hdr.csv')
-copyfile(r'Report\power-cap-coeffs.csv', r'build\exe.win-amd64-3.6\power-cap-coeffs.csv')
-Path(r'build\exe.win-amd64-3.6\Simple').mkdir(exist_ok=True)
-copyfile(r'TestSequence\simple.txt', r'build\exe.win-amd64-3.6\Simple\simple.txt')
-
-src, dst = r'C:\Users\rhohe\PycharmProjects\cmdTestSequence\Report\APL', r'build\exe.win-amd64-3.6\APL'
-if not os.path.isdir(dst):
-    copytree(src, dst)
-else:
-    for file in os.listdir(src):
-        copyfile(os.path.join(src, file), os.path.join(dst, file))
-
-if os.path.isfile(r'build\exe.win-amd64-3.6\lib\scipy\spatial\cKDTree.cp36-win_amd64.pyd'):
-    os.rename(r'build\exe.win-amd64-3.6\lib\scipy\spatial\cKDTree.cp36-win_amd64.pyd', r'build\exe.win-amd64-3.6\lib\scipy\spatial\ckdtree.cp36-win_amd64.pyd')
-
-if os.path.isfile(r"build\exe.win-amd64-3.6\lib\multiprocessing\Pool.pyc"):
-    os.rename(r"build\exe.win-amd64-3.6\lib\multiprocessing\Pool.pyc", r"build\exe.win-amd64-3.6\lib\multiprocessing\pool.pyc")
-
-zipdir(r'build\exe.win-amd64-3.6', 'tv-test-scripts.zip')
+zipdir(dst, str(dst.parent.joinpath('tv-test-scripts.zip')))

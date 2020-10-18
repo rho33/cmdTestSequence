@@ -1,0 +1,35 @@
+tag,test_name,test_time,video,preset_picture,abc,backlight,lux,mdd,qs,special_commands,ccf_pps
+1,ref_ccf_default,,ccf,aps,off,default_level,,off,,ref_ccf:default,default
+2,ref_ccf_brightest,,ccf,vivid,off,default_level,,off,,ref_ccf:brightest,brightest
+3,ref_ccf_hdr10_default,,ccf,standard,off,default_level,,off,,ref_ccf:hdr10_default,hdr10_default
+4,screen_config,,dots,aps,off,default_level,,off,,screen_config: screen_config,default
+5,camera_ccf_default,,ccf,aps,off,default_level,,off,,camera_ccf:default,default
+6,camera_ccf_brightest,,ccf,vivid,off,default_level,,off,,camera_ccf:brightest,brightest
+7,camera_ccf_hdr10_default,,ccf,standard,off,default_level,,off,,camera_ccf:hdr10_default,hdr10_default
+8,lum_profile,,lum_sdr,aps,off,default_level,,off,,"load_ccf:default,lum_profile:  ",default
+9,stabilization,,sdr,aps,off,default_level,,off,,,default
+10,default,600.0,sdr,aps,off,default_level,,off,,,default
+11,default_3bar,30.0,3bar_100nit,aps,off,default_level,,off,,,default
+12,brightest,600.0,sdr,vivid,off,default_level,,off,,load_ccf:brightest,brightest
+13,brightest_10%sdr,25.0,10%_sdr,vivid,off,default_level,,off,,peak_test:1,brightest
+14,hdr10,300.0,clasp_hdr,standard,off,default_level,,off,,peak_test:end,hdr10_default
+15,brightest_low_backlight,600.0,sdr,vivid,on,lowest_level,3.0,off,,load_ccf:brightest,brightest
+16,hdr10_low_backlight,300.0,clasp_hdr,standard,on,lowest_level,3.0,off,,load_ccf:hdr10_default,hdr10_default
+17,default_100,600.0,sdr,aps,on,default_level,100.0,off,,load_ccf:default,default
+18,pps3_100,120.0,sdr,cinema,on,default_level,100.0,off,,,default
+19,pps4_100,120.0,sdr,game,on,default_level,100.0,off,,,default
+20,default_35,600.0,sdr,aps,on,default_level,35.0,off,,,default
+21,pps3_35,120.0,sdr,cinema,on,default_level,35.0,off,,,default
+22,pps4_35,120.0,sdr,game,on,default_level,35.0,off,,,default
+23,default_12,600.0,sdr,aps,on,default_level,12.0,off,,,default
+24,pps3_12,120.0,sdr,cinema,on,default_level,12.0,off,,,default
+25,pps4_12,120.0,sdr,game,on,default_level,12.0,off,,,default
+26,default_3,600.0,sdr,aps,on,default_level,3.0,off,,,default
+27,pps3_3,120.0,sdr,cinema,on,default_level,3.0,off,,,default
+28,pps4_3,120.0,sdr,game,on,default_level,3.0,off,,,default
+29,standby,2400.0,,,,,,,off,,
+30,waketime,,,,,,,,,,
+31,standby_echo,2400.0,,,,,,,oob,,
+32,echo_waketime,,,,,,,,,,
+33,standby_google,2400.0,,,,,,,oob,,
+34,google_waketime,,,,,,,,,,

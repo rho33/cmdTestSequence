@@ -1,0 +1,22 @@
+tag,test_name,test_time,video,preset_picture,abc,backlight,lux,mdd,qs,special_commands,ccf_pps
+1,ref_ccf_default,,ccf,aps,off,default_level,,off,,ref_ccf:default,default
+2,ref_ccf_brightest,,ccf,vivid,off,default_level,,off,,ref_ccf:brightest,brightest
+3,ref_ccf_hdr10_default,,ccf,standard,off,default_level,,off,,ref_ccf:hdr10_default,hdr10_default
+4,screen_config,,dots,aps,off,default_level,,off,,screen_config: screen_config,default
+5,camera_ccf_default,,ccf,aps,off,default_level,,off,,camera_ccf:default,default
+6,camera_ccf_brightest,,ccf,vivid,off,default_level,,off,,camera_ccf:brightest,brightest
+7,camera_ccf_hdr10_default,,ccf,standard,off,default_level,,off,,camera_ccf:hdr10_default,hdr10_default
+8,lum_profile,,lum_sdr,aps,off,default_level,,off,,"load_ccf:default,lum_profile:  ",default
+9,stabilization,,sdr,aps,off,default_level,,off,,,default
+10,default,600.0,sdr,aps,off,default_level,,off,,,default
+11,default_low_backlight,600.0,sdr,aps,on,lowest_level,3.0,off,,,default
+12,brightest,600.0,sdr,vivid,off,default_level,,off,,load_ccf:brightest,brightest
+13,brightest_low_backlight,600.0,sdr,vivid,on,lowest_level,3.0,off,,,brightest
+14,hdr10,300.0,clasp_hdr,standard,off,default_level,,off,,load_ccf:hdr10_default,hdr10_default
+15,hdr10_low_backlight,300.0,clasp_hdr,standard,on,lowest_level,3.0,off,,,hdr10_default
+16,standby,2400.0,,,,,,,off,,
+17,waketime,,,,,,,,,,
+18,standby_echo,2400.0,,,,,,,oob,,
+19,echo_waketime,,,,,,,,,,
+20,standby_google,2400.0,,,,,,,oob,,
+21,google_waketime,,,,,,,,,,

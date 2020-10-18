@@ -1,0 +1,4 @@
+Test Name,QS,Power Limit (W),Avg Power (W)
+standby,off,2,2.9
+standby_echo,on,2,3.0
+standby_google,on,2,2.2

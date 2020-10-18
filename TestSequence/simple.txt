@@ -1,1 +1,0 @@
-To activate simple mode, move this file into the same directory as the test sequence and report scripts (should be parent directory)
