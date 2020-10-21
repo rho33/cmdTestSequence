@@ -59,19 +59,9 @@ def get_results_summary_df(merged_df, data_folder, waketimes):
     return rsdf
 
 @except_none_log
-def get_waketimes(paths):
+def get_waketimes(merged_df):
     """Calculate wake times from the test data and return as a dictionary."""
-    test_seq_df = pd.read_csv(paths['test_seq'])
-    data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
-    waketimes = {}
-    for _, row in test_seq_df.iterrows():
-        if 'waketime' in row['test_name']:
-            standby_tag = row['tag'] - 1
-            standby_test = test_seq_df.query('tag==@standby_tag')['test_name'].iloc[0]
-            wt_tag = row['tag'] + .1
-            waketime = len(data_df.query('Tag==@wt_tag'))
-            waketimes[standby_test] = waketime
-    return waketimes
+    return dict(zip(merged_df['test_name'], merged_df['waketime']))
 
 @except_none_log
 def get_on_mode_df(rsdf, limit_funcs, area, report_type):
@@ -198,7 +188,9 @@ def get_limit_funcs(report_type):
 def get_merged_df(paths, data_folder):
     test_seq_df = pd.read_csv(paths['test_seq'])
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
+    archive(paths['test_data'])
     merged_df = merge.merge_test_data(test_seq_df, data_df)
+    merged_df['source'] = Path(paths['test_data']).name
     
     if paths['old_merged'] is not None:
         old_merged_df = pd.read_csv(paths['old_merged'])
@@ -208,8 +200,11 @@ def get_merged_df(paths, data_folder):
         merged_df = merge.remove_rows_rewind(merged_df, col='test_name')
         merged_df = merged_df.query('test_name!=-1')
         
+        
     merged_df.to_csv(Path(data_folder).joinpath('merged.csv'), index=False)
+    
     # todo: handle different report types
+    
     return merged_df
 
 @except_none_log
@@ -266,7 +261,7 @@ def get_report_data(paths, data_folder, docopt_args):
     else:
         data['persistence_dfs'] = None
         data['spectral_df'] = None
-    data['waketimes'] = get_waketimes(paths)
+    data['waketimes'] = get_waketimes(data['merged_df'])
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
     data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
     data['test_date'] = get_test_date(data['test_specs_df'])

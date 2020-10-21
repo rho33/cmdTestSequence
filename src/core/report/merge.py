@@ -100,6 +100,21 @@ def remove_rows_rewind(df, col='Tag'):
     return df.drop(remove_rows)
 
 
+def add_waketimes(merged_df, test_seq_df, data_df):
+    """Calculate wake times from the test data and return as a dictionary."""
+    waketimes = {}
+    for _, row in test_seq_df.iterrows():
+        if 'waketime' in row['test_name']:
+            standby_tag = row['tag'] - 1
+            standby_test = test_seq_df.query('tag==@standby_tag')['test_name'].iloc[0]
+            wt_tag = f"{row['tag'] + .1} - user command"
+            waketime = len(data_df.query('Tag==@wt_tag'))
+            waketimes[standby_test] = waketime
+            
+    merged_df['waketime'] = merged_df['test_name'].apply(waketimes.get)
+    return merged_df
+
+
 def merge_test_data(test_seq_df, data_df):
     """
     Merges test output data, test sequence data, and APL data
@@ -117,5 +132,6 @@ def merge_test_data(test_seq_df, data_df):
     merged_df = merged_df.merge(test_seq_df, on='tag', how='left')
     merged_df = cut_off_intros(merged_df)
     merged_df = add_apl_data(merged_df)
+    merged_df = add_waketimes(merged_df, test_seq_df, data_df)
     return merged_df
 
