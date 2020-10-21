@@ -6,15 +6,22 @@ from zipfile import ZipFile
 
 sys.path.append(str(Path(sys.path[0]).joinpath('src')))
 
-dst = Path(r'..\bin\build')
+dst = Path(r'bin\build')
 build_exe_options = {
     "packages": ['core'],
     "includes": ['pandas', 'docopt','matplotlib', 'matplotlib.backends.backend_tkagg', 'seaborn', 'scipy.ndimage._ni_support',
                  'seaborn.cm', 'scipy', 'scipy.spatial.ckdtree', 'scipy.sparse.csgraph._validation',
                  'multiprocessing.pool', 'mpl_toolkits', 'core'],
     "excludes": ['sqlite3', 'sklearn'],
-    "include_files": ['config', 'img'],
-    "build_exe": str(dst)
+    "include_files": [r'src\config', r'src\img'],
+    "build_exe": str(dst),
+    "include_msvcr": True,
+}
+install_exe_options = {'build_dir': str(dst)}
+bdist_msi_options = {
+    "initial_target_dir": r'C:\Program Files (x86)\DMC\TV Test System\External Scripts',
+    "dist_dir": r'bin\dist',
+    "bdist_dir": r'bin\dist\bdist'
 }
 
 base = None
@@ -22,19 +29,26 @@ if sys.platform == "win32":
     base = "Console"
 
 setup(
-    options = {"build_exe": build_exe_options},
+    name = 'TV Test System Scripts',
+    version = '0.10.0',
+    description = "description",
+    options = {
+        "build_exe": build_exe_options,
+        "install_exe": install_exe_options,
+        "bdist_msi": bdist_msi_options
+    },
     executables = [
-        Executable(r"report.py", base=base),
-        Executable(r"main_sequence.py", base=base),
-        Executable(r"manual_sequence.py", base=base),
-        Executable(r"pcl_sequence.py", base=base),
-        Executable(r"repair_sequence.py", base=base),
-        Executable(r"ccf.py", base=base),
-        Executable(r"overlay.py", base=base),
-        Executable(r"lum_report.py", base=base),
-        Executable(r"basic_report.py", base=base),
-        Executable(r"compliance_report.py", base=base),
-        Executable(r"apl_power_charts.py", base=base),
+        Executable(r"src\report.py", base=base),
+        Executable(r"src\main_sequence.py", base=base),
+        # Executable(r"manual_sequence.py", base=base),
+        Executable(r"src\pcl_sequence.py", base=base),
+        # Executable(r"repair_sequence.py", base=base),
+        Executable(r"src\ccf.py", base=base),
+        Executable(r"src\overlay.py", base=base),
+        Executable(r"src\lum_report.py", base=base),
+        Executable(r"src\basic_report.py", base=base),
+        Executable(r"src\compliance_report.py", base=base),
+        Executable(r"src\apl_power_charts.py", base=base),
     ]
 )
 # cx_freeze randomly capitalizes some folders/file names which then causes errors.
