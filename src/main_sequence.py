@@ -2,7 +2,7 @@
 main_sequence.exe  <data_folder> <default_pps> <brightest_pps> [options]
 
 Arguments:
-  data_folder       data folder
+  data_folder       directory where data for this test sequence will be stored
   default_pps       name of default preset picture setting
   brightest_pps     name of brightest preset picture setting
 
@@ -12,7 +12,7 @@ Options:
   --hdr=pps     specify hdr preset picture setting for testing
   --hdrabc      include abc on tests for hdr pps
   --brabc       include abc on tests for brightest pps
-  --qs=secs     tv has quickstart off by default, number of seconds to wake
+  --qs=secs     tv has quickstart off by default, number of seconds to wake with quickstart off
 """
 import sys
 from pathlib import Path
