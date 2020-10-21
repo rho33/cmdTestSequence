@@ -1,0 +1,13 @@
+tag,test_name,test_time,preset_picture,video,mdd,abc,lux,qs,watts,nits,APL',waketime
+9.1,stabilization1,600.0,aps,sdr,off,off,,,89.7601306561,44.9512653234,34.4563333333,
+9.2,stabilization2,600.0,aps,sdr,off,off,,,72.3712891304,36.1585370433,34.4563333333,
+10.0,default,600.0,aps,sdr,off,off,,,103.322759989,51.7654878066,34.4563333333,
+11.0,default_low_backlight,600.0,aps,sdr,off,on,3.0,,103.315642019,51.6914595753,34.4563333333,
+12.0,brightest,600.0,vivid,sdr,off,off,,,123.900458187,62.0738064068,34.4563333333,
+13.0,brightest_low_backlight,600.0,vivid,sdr,off,on,3.0,,123.7984181,61.603844576,34.4563333333,
+14.0,hdr10,300.0,standard,clasp_hdr,off,off,,,3.89693348874,1.9570751585,28.6786666667,
+15.0,hdr10_low_backlight,300.0,standard,clasp_hdr,off,on,3.0,,3.87020442845,1.9232387864,28.6786666667,
+16.0,standby,2400.0,,,,,,off,2.39884760729,1.2015035457,0.0,0.0
+18.0,standby_echo,2400.0,,,,,,oob,2.58287612369,1.28916142843,0.0,0.0
+20.0,standby_google,2400.0,,,,,,oob,3.63227552227,1.81459055046,0.0,0.0
+100.0,new_test,600.0,aps,sdr,off,off,,,103.32275999,51.7654878063,34.4563333333,

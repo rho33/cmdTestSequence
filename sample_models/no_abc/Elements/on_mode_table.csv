@@ -1,0 +1,8 @@
+Test Name,Preset Picture,ABC,MDD,Avg Luminance (Nits),Power Limit (W),Avg Power (W),Power/Power Limit
+default,standard,off,off,25.9,,22.9,
+default_measured,,,,25.9,91.3,22.9,0.3
+brightest,dynamic,off,off,28.3,,27.3,
+brightest_measured,,,,28.3,88.3,27.3,0.3
+hdr,standard,,off,100.0,,120.0,
+hdr_measured,,,,100.0,177.6,120.0,0.7
+passing_pps,,,,,,,3/3

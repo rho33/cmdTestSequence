@@ -1,0 +1,13 @@
+Test Name,Test Time (s),Video,Avg APL' (%),ABC,Preset Picture,MDD,QS,Wake Time (s),Avg Luminance (Nits),Avg Power (W)
+stabilization1,6,IEC SDR,33.6,off,standard,off,,,100.0,120.0
+standby_google,2400,,0.0,,,,off,0.0,100.0,1.9
+default,600,IEC SDR,31.2,off,standard,off,,,25.9,22.9
+default_low_backlight,600,IEC SDR,31.6,off,standard,off,,,24.0,23.3
+brightest,600,IEC SDR,32.4,off,dynamic,off,,,28.3,27.3
+stabilization2,600,IEC SDR,34.5,,standard,off,,,100.0,120.0
+brightest_low_backlight,600,IEC SDR,34.5,off,dynamic,off,,,100.0,120.0
+hdr10,300,CLASP HDR10,28.7,off,standard,off,,,100.0,120.0
+hdr10_low_backlight,300,CLASP HDR10,28.7,off,standard,off,,,100.0,120.0
+standby,2400,,0.0,,,,off,0.0,93.2,111.9
+hdr,300,CLASP HDR10,28.7,,standard,off,,,100.0,120.0
+hdr_low_backlight,300,CLASP HDR10,13.2,,standard,off,oob,,94.2,112.5

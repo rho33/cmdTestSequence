@@ -1,0 +1,25 @@
+tag,test_name,test_time,video,preset_picture,abc,backlight,lux,mdd,qs,special_commands,ccf_pps
+1,screen_config,,dots,standard,off,default_level,,off,,screen_config: screen_config,default
+2,lum_profile,,lum_sdr,standard,off,default_level,,off,,lum_profile:  ,default
+3,stabilization,,sdr,standard,off,default_level,,off,,,default
+4,default,600.0,sdr,standard,off,default_level,,off,,,default
+5,default_100,600.0,sdr,standard,on,default_level,100.0,off,,,default
+6,default_35,600.0,sdr,standard,on,default_level,35.0,off,,,default
+7,default_12,600.0,sdr,standard,on,default_level,12.0,off,,,default
+8,default_3,600.0,sdr,standard,on,default_level,3.0,off,,,default
+9,brightest,600.0,sdr,vivid,off,default_level,,off,,,brightest
+10,brightest_100,600.0,sdr,vivid,on,default_level,100.0,off,,,brightest
+11,brightest_35,600.0,sdr,vivid,on,default_level,35.0,off,,,brightest
+12,brightest_12,600.0,sdr,vivid,on,default_level,12.0,off,,,brightest
+13,brightest_3,600.0,sdr,vivid,on,default_level,3.0,off,,,brightest
+14,hdr10,300.0,clasp_hdr,standard,off,default_level,,off,,,hdr10_default
+15,hdr10_100,300.0,clasp_hdr,standard,on,default_level,100.0,off,,,hdr10_default
+16,hdr10_35,300.0,clasp_hdr,standard,on,default_level,35.0,off,,,hdr10_default
+17,hdr10_12,300.0,clasp_hdr,standard,on,default_level,12.0,off,,,hdr10_default
+18,hdr10_3,300.0,clasp_hdr,standard,on,default_level,3.0,off,,,hdr10_default
+19,standby,2400.0,,,,,,,off,,
+20,waketime,,,,,,,,,,
+21,standby_echo,2400.0,,,,,,,oob,,
+22,echo_waketime,,,,,,,,,,
+23,standby_google,2400.0,,,,,,,oob,,
+24,google_waketime,,,,,,,,,,

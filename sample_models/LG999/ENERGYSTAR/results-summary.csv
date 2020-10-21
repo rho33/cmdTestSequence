@@ -1,0 +1,12 @@
+tag,test_name,test_time,preset_picture,video,mdd,abc,lux,qs,watts,nits,APL',waketime
+2.1,stabilization1,600.0,aps,sdr,off,off,,,3.14547867132,1.57506997276,34.4563333333,
+2.2,stabilization2,600.0,aps,sdr,off,off,,,2.50174613943,1.25304879528,34.4563333333,
+7.0,default,600.0,aps,sdr,off,off,,,3.00468607205,1.50082585068,34.4563333333,
+8.0,default_low_backlight,600.0,aps,sdr,off,off,,,2.99143102684,1.50045051438,34.4563333333,
+9.0,brightest,600.0,vivid,sdr,off,off,,,3.59933357332,1.79955362917,34.4563333333,
+10.0,brightest_low_backlight,600.0,vivid,sdr,off,off,,,3.60945734903,1.80266985023,34.4563333333,
+11.0,hdr10,300.0,standard,clasp_hdr,off,off,,,3.89552799591,1.93697274971,28.6786666667,
+12.0,hdr10_low_backlight,300.0,standard,clasp_hdr,off,off,,,3.87636889275,1.93086843209,28.6786666667,
+13.0,standby,2400.0,,,,,,off,2.95616400574,1.47831024189,0.0,9.0
+15.0,standby_echo,2400.0,,,,,,oob,3.85835652629,1.93140461882,0.0,9.0
+17.0,standby_google,2400.0,,,,,,oob,3.41734382711,1.71108790435,0.0,9.0
