@@ -47,7 +47,7 @@ def create_test_seq_df(test_order, rename_pps, qson=False):
     prev_peak = False
     for idx, row in df.loc[last_ccf_idx+1:].iterrows():
         # apply load_ccf commands
-        if row['ccf_pps'] != prev_ccf_pps and pd.notna(row['ccf_pps']):
+        if pd.notna(row['ccf_pps']):
             if pd.isna(row['special_commands']):
                 df.loc[idx, 'special_commands'] = f"load_ccf:{row['ccf_pps']}"
             else:
