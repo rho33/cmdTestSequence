@@ -1,7 +1,0 @@
-tag,test_name,test_time,video,preset_picture,abc,backlight,lux,mdd,qs,special_commands,ccf_pps
-1,ref_ccf_default,,ccf,aps,off,default_level,,off,,ref_ccf:default,default
-2,screen_config,,dots,aps,off,default_level,,off,,screen_config: screen_config,default
-3,camera_ccf_default,,ccf,aps,off,default_level,,off,,camera_ccf:default,default
-4,stabilization,,sdr,aps,off,default_level,,off,,load_ccf:default,default
-10 repair,default,600.0,sdr,aps,off,default_level,,off,,,default
-16 repair,standby,2400.0,,,,,,,off,,

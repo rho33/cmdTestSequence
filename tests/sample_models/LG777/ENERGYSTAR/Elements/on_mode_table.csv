@@ -1,6 +1,0 @@
-Test Name,Preset Picture,ABC,MDD,Avg Luminance (Nits),Power Limit (W),Avg Power (W),Power/Power Limit
-default,aps,off,off,51.8,,103.3,
-default_measured,,,,51.8,147.1,103.3,0.7
-brightest,vivid,off,off,62.1,,123.9,
-brightest_measured,,,,62.1,157.4,123.9,0.8
-passing_pps,,,,,,,2/2

@@ -1,9 +1,0 @@
-tag,test_name,test_time,video,preset_picture,abc,backlight,lux,mdd,qs,special_commands
-1,ref_ccf_default,,ccf,standard,off,default_level,,off,,ref_ccf:default
-2,ref_ccf_brightest,,ccf,dynamic,off,default_level,,off,,ref_ccf:brightest
-3,screen_config,,dots,standard,off,default_level,,off,,screen_config: screen_config
-4,basler_ccf_default,,ccf,standard,off,default_level,,off,,basler_ccf:default
-5,basler_ccf_brightest,,ccf,dynamic,off,default_level,,off,,basler_ccf:brightest
-6,stabilization,,sdr,standard,off,default_level,,off,,load_ccf:default
-7,default,600.0,sdr,standard,off,default_level,,off,,
-8,brightest_100,600.0,sdr,dynamic,on,default_level,100.0,off,,load_ccf:brightest
