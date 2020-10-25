@@ -16,6 +16,11 @@ build_exe_options = {
     "include_files": [r'src\config', r'src\img'],
     "build_exe": str(dst),
     "include_msvcr": True,
+    "replace_paths": [
+        (r"C:\Users\rhohe\PycharmProjects\cmdTestSequence\venv", "<Python>"),
+        (r"C:\Users\rhohe\PycharmProjects\cmdTestSequence\src", "<Scripts>"),
+        (r"C:\Users\rhohe\PycharmProjects\cmdTestSequence\bin\build\lib", "<Scripts>")
+    ],
 }
 install_exe_options = {'build_dir': str(dst)}
 bdist_msi_options = {
@@ -40,15 +45,8 @@ setup(
     executables = [
         Executable(r"src\report.py", base=base),
         Executable(r"src\main_sequence.py", base=base),
-        # Executable(r"manual_sequence.py", base=base),
         Executable(r"src\pcl_sequence.py", base=base),
-        # Executable(r"repair_sequence.py", base=base),
         Executable(r"src\ccf.py", base=base),
-        Executable(r"src\overlay.py", base=base),
-        Executable(r"src\lum_report.py", base=base),
-        Executable(r"src\basic_report.py", base=base),
-        Executable(r"src\compliance_report.py", base=base),
-        Executable(r"src\apl_power_charts.py", base=base),
     ]
 )
 # cx_freeze randomly capitalizes some folders/file names which then causes errors.
