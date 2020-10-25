@@ -188,7 +188,6 @@ def get_limit_funcs(report_type):
 def get_merged_df(paths, data_folder):
     test_seq_df = pd.read_csv(paths['test_seq'])
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
-    archive(paths['test_data'])
     merged_df = merge.merge_test_data(test_seq_df, data_df)
     merged_df['source'] = Path(paths['test_data']).name
     
