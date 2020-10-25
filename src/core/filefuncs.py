@@ -7,6 +7,9 @@ import warnings
 from .error_handling import permission_popup
 
 
+APPDATA_DIR = Path(os.environ['LOCALAPPDATA']).joinpath(r"DMC\TV Luminance Test System")
+APPDATA_DIR.mkdir(exist_ok=True, parents=True)
+
 @permission_popup
 def send_file(filepath, dst_folder_name, copy=True, date=True):
     """Copy (or cut) a file and paste it in a destination sub-folder"""
@@ -43,7 +46,9 @@ PATTERNS = {
     'spectral_profile': '*spectral*.csv',
     'old_merged': '*merged*.csv',
     'ccf': 'ccf-output.csv',
-    'results_summary': 'results-summary.csv'
+    'results_summary': 'results-summary.csv',
+    'partial_test_seq': 'partial-ts.csv',
+    'partial_cmd_seq': 'partial-cs.csv',
 }
 
 
