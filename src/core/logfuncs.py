@@ -3,15 +3,17 @@ import logging
 from functools import wraps
 from pathlib import Path
 from docopt import docopt
+from .filefuncs import APPDATA_DIR
 
-def cwd_logger(log_filename):
-    
+
+def appdata_logger(log_filename):
+
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    cwd_file_handler = logging.FileHandler(log_filename, mode='w')
+    appdata_file_handler = logging.FileHandler(str(APPDATA_DIR.joinpath(log_filename)), mode='w')
     formatter = logging.Formatter(logging.BASIC_FORMAT)
-    cwd_file_handler.setFormatter(formatter)
-    logger.addHandler(cwd_file_handler)
+    appdata_file_handler.setFormatter(formatter)
+    logger.addHandler(appdata_file_handler)
     return logger
 
 def log_output(func):
@@ -31,7 +33,7 @@ def add_logfile(logger, filepath):
     
     
 def start_script(doc, log_filename):
-    logger = cwd_logger(log_filename)
+    logger = appdata_logger(log_filename)
     logger.info(sys.argv)
     docopt_args = docopt(doc)
     data_folder = docopt_args.get('<data_folder>')
