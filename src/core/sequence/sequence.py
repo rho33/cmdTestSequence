@@ -3,7 +3,7 @@ import sys
 import shutil
 import pandas as pd
 from pathlib import Path
-from ..filefuncs import archive
+from ..filefuncs import archive, APPDATA_DIR
 from ..error_handling import permission_popup
 
 
@@ -71,22 +71,12 @@ def create_test_seq_df(test_order, rename_pps, qson=False):
 
         
 @permission_popup
-def save_sequences(test_seq_df, command_df, data_folder, repair=False):
+def save_sequences(test_seq_df, command_df, data_folder):
     """Save test_seq_df and command_df to correct locations"""
-    filenames = ['test-sequence.csv', 'command-sequence.csv']
-    # save to current working directory
-    test_seq_df.to_csv(filenames[0], index=False)
-    command_df.to_csv(filenames[1], index=False, header=False)
+    # save to appdata directory
+    test_seq_df.to_csv(APPDATA_DIR.joinpath('test-sequence.csv'), index=False)
+    command_df.to_csv(APPDATA_DIR.joinpath('command-sequence.csv'), index=False, header=False)
     # also save within the data_folder
-    for filename in filenames:
-        if repair:
-            # save to repair sub-folder if this is repair sequence
-            repair_folder = Path(data_folder).joinpath('Repair')
-            repair_folder.mkdir(exist_ok=True)
-            save_path = repair_folder.joinpath(f"repair-{filename}")
-        else:
-            save_path = Path(data_folder).joinpath(filename)
-            
-        if save_path.exists():
-            archive(save_path, date=True)
-        shutil.copy(filename, save_path)
+    test_seq_df.to_csv(data_folder.joinpath('test-sequence.csv'), index=False)
+    command_df.to_csv(data_folder.joinpath('command-sequence.csv'), index=False, header=False)
+    
