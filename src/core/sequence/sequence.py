@@ -1,6 +1,6 @@
 """Functions used in multiple test sequence scripts."""
 import sys
-import shutil
+from datetime import datetime
 import pandas as pd
 from pathlib import Path
 from ..filefuncs import archive, APPDATA_DIR
@@ -71,12 +71,20 @@ def create_test_seq_df(test_order, rename_pps, qson=False):
 
         
 @permission_popup
-def save_sequences(test_seq_df, command_df, data_folder):
+def save_sequences(test_seq_df, command_df, data_folder, partial=False):
     """Save test_seq_df and command_df to correct locations"""
     # save to appdata directory
     test_seq_df.to_csv(APPDATA_DIR.joinpath('test-sequence.csv'), index=False)
     command_df.to_csv(APPDATA_DIR.joinpath('command-sequence.csv'), index=False, header=False)
     # also save within the data_folder
-    test_seq_df.to_csv(data_folder.joinpath('test-sequence.csv'), index=False)
-    command_df.to_csv(data_folder.joinpath('command-sequence.csv'), index=False, header=False)
+    if partial:
+        # also save to Partial subdirectory for records
+        partial_dir = Path(data_folder).joinpath('Partial')
+        partial_dir.mkdir(exist_ok=True)
+        today = datetime.today().strftime('%Y-%h-%d-%H-%M')
+        test_seq_df.to_csv(partial_dir.joinpath(f'partial-test-sequence-{today}.csv'), index=False)
+        command_df.to_csv(partial_dir.joinpath(f'partial-command-sequence-{today}.csv'), index=False, header=False)
+    else:
+        test_seq_df.to_csv(data_folder.joinpath('test-sequence.csv'), index=False)
+        command_df.to_csv(data_folder.joinpath('command-sequence.csv'), index=False, header=False)
     
