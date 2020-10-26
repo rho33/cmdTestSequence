@@ -15,6 +15,7 @@ from docopt import docopt
 from core.error_handling import permission_popup
 import core.logfuncs as lf
 
+
 @lf.log_output
 def get_trendline(pps_df):
 
@@ -39,7 +40,7 @@ def get_final_trendline(trendlines, w_outputs):
 
 @permission_popup
 def main():
-    logger = lf.cwd_logger('ccf.log')
+    logger = lf.appdata_logger('ccf.log')
     logger.info(str(sys.argv))
     docopt_args = docopt(__doc__)
     logger.info(docopt_args)
@@ -60,7 +61,7 @@ def main():
             logger.info(f'\nPPS: {pps}')
             pps_df = input_df.query('pps==@pps')
             final_trendlines[pps] = get_trendline(pps_df)
-
+            
         output_path = 'ccf-output.csv'
         # if docopt_args['-o'] is not None:
         #     output_path = Path(docopt_args['-o']).joinpath(output_path)
