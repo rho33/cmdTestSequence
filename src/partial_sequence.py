@@ -1,9 +1,11 @@
-"""Usage:
+"""
+Usage:
 partial_sequence.exe  <data_folder> <tags>... [options]
 
 Arguments:
   data_folder       folder with test data
   tags              list of tests to include in partial sequence
+  
 Options:
   -h --help
 """
