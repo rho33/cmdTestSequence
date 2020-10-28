@@ -219,7 +219,7 @@ def get_limit_func_strings(limit_funcs, hdr):
         if 'power_cap_func' in coeffs.keys():
             pcf = coeffs['power_cap_func'].keywords
             power_cap_func_str = f"{pcf['sf']:.2f}*(({pcf['a']:.3f}*area)+{pcf['b']:.3f})"
-            func_str = f'Minimum of:<br/>1. {func_str}<br/>2. {power_cap_func_str}'
+            func_str = f'Minimum of:<br/>• {func_str}<br/>• {power_cap_func_str}'
         return func_str
     lfs = {
         'default': '<strong>Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['default']),
