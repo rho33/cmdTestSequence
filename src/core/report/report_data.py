@@ -64,7 +64,7 @@ def get_waketimes(merged_df):
     return dict(zip(merged_df['test_name'], merged_df['waketime']))
 
 @except_none_log
-def get_on_mode_df(rsdf, limit_funcs, area, report_type):
+def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
     def add_pps_tests(on_mode_df, cdf, abc_off_test, abc_on_tests, limit_func):
         on_mode_df = on_mode_df.append(cdf.loc[abc_off_test])
@@ -94,17 +94,16 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type):
     cdf = rsdf.set_index('test_name')
     on_mode_df = cdf.drop(cdf.index)
 
-    def_abc_tests = [test for test in ['default_100', 'default_35', 'default_12', 'default_3'] if test in cdf.index]
+    def_abc_tests = [test for test in ['default_100', 'default_35', 'default_12', 'default_3', 'default_low_backlight'] if test in cdf.index]
     on_mode_df = add_pps_tests(on_mode_df, cdf, 'default', def_abc_tests, limit_funcs['default'])
 
-    br_abc_tests = [test for test in ['brightest_100', 'brightest_35', 'brightest_12', 'brightest_3'] if
+    br_abc_tests = [test for test in ['brightest_100', 'brightest_35', 'brightest_12', 'brightest_3', 'brightest_low_backlight'] if
                     test in cdf.index]
     on_mode_df = add_pps_tests(on_mode_df, cdf, 'brightest', br_abc_tests, limit_funcs['brightest'])
     
-    # todo: implement hdr arg instead of this
-    if 'hdr' in cdf.index:
-        hdr_abc_tests = [test for test in ['hdr_100', 'hdr_35', 'hdr_12', 'hdr_3'] if test in cdf.index]
-        on_mode_df = add_pps_tests(on_mode_df, cdf, 'hdr', hdr_abc_tests, limit_funcs['hdr'])
+    if hdr:
+        hdr_abc_tests = [test for test in ['hdr10_100', 'hdr10_35', 'hdr10_12', 'hdr10_3', 'hdr10_low_backlight'] if test in cdf.index]
+        on_mode_df = add_pps_tests(on_mode_df, cdf, 'hdr10', hdr_abc_tests, limit_funcs['hdr'])
 
     on_mode_df = on_mode_df.reset_index()
     on_mode_df['ratio'] = on_mode_df['watts']/on_mode_df['limit']
@@ -266,8 +265,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['test_date'] = get_test_date(data['test_specs_df'])
     data['area'] = get_screen_area(data['test_specs_df'])
     data['model'] = get_model(data['test_specs_df'])
-    
-    data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'])
+    data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['lum_df'] = get_lum_df(paths)
     return data
