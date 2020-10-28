@@ -210,7 +210,7 @@ the test at tag 11 (hdr10), as well as color correction factor steps (if necessa
 
 The resulting partial test sequence will look something like this:
 
-![test-seq](img/partial-test-sequence.png)
+![partial-test-seq](img/partial-test-sequence.png)
 
 #### partial_sequence.exe Output Files
 # todo: include overview of what happens after partial test sequence as been completed
@@ -233,3 +233,109 @@ There is a correction factor (linear transformation) calculated for each preset 
 # Report Scripts
 The report scripts take the results of TV testing and generate pdf reports.
 They are meant to be called after TV testing has been completed.
+
+When a test run is complete, the TV Test System app will drop the files containing the test results into the data_folder (same as argument supplied to test_sequence script)
+Only two of these files are of primary concern to the user and to the report scripts. They are:
+- the csv file that starts with "datalog"
+    - this contains the luminance and power readings from every second of the test run along with a tag column to identify which test each reading belongs to
+- the csv file that starts with "lum profile"
+    - this contains the data from the luminance profile test data (if this test was run)
+
+## merge_results.exe
+
+The functionality of merge_results.exe is included in report.exe. 
+Ideally merge_results.exe should not need to be called but merging the test results data is distinct from generating a report so this script exists just in case.
+Know that the functionality described here is also the first step of the report.exe script
+   
+The merge_results.exe script cleans and joins the test results data in order to make it more usable for both the report scripts and the user.
+It outputs a file named "merged.csv" (example below). 
+This file is the primary data source for the report and will likely be the primary data source for any further data analysis.
+ 
+ ![merged-csv](img/merged-csv.png)
+ 
+ Inside the file are the power (watts) and luminance (nits) readings from the datalog csv joined with the test information from test-sequence.csv
+ as well as average picture level (APL) data found in the config folder (see installation).
+ 
+ 
+ If a second run of a test sequence is completed, whether it's a partial run (see partial_sequence.exe) or full run,
+ the TV Test System app will drop a new set of results files into the data_folder.
+ When the new merged.csv is created by either merge_results.exe or report.exe a few things will occur:
+ - The older of the two datalog csv files will be archived (sent to the Archive subdirectory)
+ - The older of the two lum profile csv files (if two exist) will be archived
+ - Data from a given test in the existing merged.csv will be included in the new merged.csv if the test was not part of the new test run.
+ So if the existing merged.csv contains tests tagged 1-20 from the test sequence and a second test run of tests 15-20 is completed,
+ the new merged.csv will still contain tests 1-20 consisting of tests 1-14 from the existing merged.csv and tests 15-20 from the new test run.
+ Tests 15-20 will be overwritten with the results from the new test run.
+ 
+Note that running merge_results.exe or report.exe multiple times on the same data_folder with the same data will not change the output of either script.
+
+## report.exe
+- mention merge_results section
+- mention report_type trigger
+- name sections and point to example
+    - Test Specifics
+        - includes test details such as tv model information, date and time of test, test location, tester identity, and testing conditions.
+    - Compliance
+        - on mode
+        - standby
+    - supplemental
+        - stabilization
+        - apl vs power
+        - light directionality
+    - test result table
+    - test result plots
+- describe behavior on incomplete info/partial runs
+
+where to mention log files?
+
+report.exe uses the test results data to generate a pdf report consisting of various tables and charts.
+The first step of report.exe, before generating a pdf, is to clean and merge the test results into a file named merged.csv.
+More information about this step can be found in the merge_results.exe secion of this README. 
+
+
+An example report can be found in this repository at ...
+
+The structure of a full report is:
+
+
+
+
+
+The compliance section of the report will depend on the report type.
+The different report types are ENERGYSTAR, Alternative, and PCL.
+The report type can be dictated through command line options: -e for ENERGYSTAR, -v for alternative, and -p for PCL)
+but will more commonly be determined by the name of the data_folder.
+The TV Test System app should create and pass data_folder names following the format of path\to\all\tvs\tv_model\report_type.
+If no report type option is passed to report.exe, report type will be determined by the name of the data_folder.
+If for some reason the data_folder contains no information about report type (i.e. it was not created by the TV Test System app)
+then report.exe will attempt to run an ENERGYSTAR report.
+
+
+If their is not enough data present in the data_folder for a given section of the report
+, for example if only a partial run of the test sequence has been completed,
+then the report script will leave the corresponding report sections blank. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
