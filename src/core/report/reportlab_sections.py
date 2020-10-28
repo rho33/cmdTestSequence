@@ -225,9 +225,9 @@ GRID_STYLES = {
 }
 
 # flowable converters
-def make_paragraph(text, style=PARAGRAPH_STYLES['Normal']):
+def make_paragraph(text, style=PARAGRAPH_STYLES['Normal'], **kwargs):
     """Return Paragraph object from string."""
-    return Paragraph(text, style)
+    return Paragraph(text, style, **kwargs)
 
 
 def make_table(table_df, grid_style=GRID_STYLES['normal'], header=True, **kw):
