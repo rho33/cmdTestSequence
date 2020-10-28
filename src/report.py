@@ -46,6 +46,26 @@ class ISection(rls.Section):
         return new_section
 
 
+def round_if_float(x, decimals=1):
+    # if x == '50.000000':
+    #     print(float(x), float(x).is_integer(), int(x))
+
+    if isinstance(x, float):
+        return round(x, decimals)
+    else:
+
+        try:
+            # print(x, float(x).is_integer(), int(x))
+            if not float(x).is_integer():
+                return round(float(x), decimals)
+            else:
+                return int(float(x))
+        except (ValueError, TypeError):
+            # print(x)
+            return x
+
+        
+        
 def clean_rsdf(rsdf, cols=None):
     """Clean the results summary dataframe so that it can be displayed in a pdf table."""
     rename_video = {
@@ -102,11 +122,7 @@ def clean_rsdf(rsdf, cols=None):
     cdf = cdf.dropna(axis=1, how='all')
     cdf = cdf.rename(columns=rename_cols)
 
-    def round_if_float(x, decimals=1):
-        if isinstance(x, float):
-            return round(x, decimals)
-        else:
-            return x
+
     cdf = cdf.applymap(round_if_float)
     return cdf
 
@@ -345,7 +361,6 @@ def add_overlay(report, rsdf, merged_df, test_names, **kwargs):
     report.create_element('table', table_df)
     report.create_element('plot', plots.overlay(merged_df, test_names))
 
-
 @skip_and_warn
 def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_type, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
@@ -395,7 +410,7 @@ def add_test_results_plots(report, rsdf, merged_df, **kwargs):
                 tn.create_element(f'{test_name} plot', plots.standard(tdf))
     return report
 
-@skip_and_warn
+# @skip_and_warn
 def add_test_specs(report, test_specs_df, **kwargs):
     with report.new_section('Test Specifics') as test_specs:
         style = [
@@ -405,7 +420,8 @@ def add_test_specs(report, test_specs_df, **kwargs):
             ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
-        test_specs.create_element('test spec table', test_specs_df.reset_index(), grid_style=style, header=False)
+
+        test_specs.create_element('test spec table', test_specs_df.reset_index().applymap(round_if_float), grid_style=style, header=False)
     return report
 
 
