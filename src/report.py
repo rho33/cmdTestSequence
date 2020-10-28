@@ -259,7 +259,7 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                            waketimes, **kwargs):
     
         
-    with report.new_section('Compliance with Additional Tests', page_break=False) as cat:
+    with report.new_section('Compliance', page_break=False) as cat:
         
         
         with cat.new_section('On Mode Tests') as on_mode_tests:
@@ -407,6 +407,7 @@ def add_test_specs(report, test_specs_df, **kwargs):
         ]
         test_specs.create_element('test spec table', test_specs_df.reset_index(), grid_style=style, header=False)
     return report
+
 
 def get_content_page(model, test_date):
     def content_page(canvas, doc):
