@@ -40,7 +40,7 @@ def get_results_summary_df(merged_df, data_folder, waketimes):
     """Create a dataframe with one line per test showing test info and test results (average watts and nits)."""
     rsdf = merged_df.groupby(['tag']).first()
 
-    cols = ['test_name', 'test_time', 'preset_picture', 'video', 'mdd', 'abc', 'lux', 'qs']
+    cols = ['test_name', 'test_time', 'preset_picture', 'video', 'mdd', 'abc', 'lux', 'qs', 'lan', 'wan']
     cols = [col for col in cols if col in rsdf.columns]
     rsdf = rsdf[cols]
     avg_cols = ['watts', 'nits', "APL'"]
@@ -64,6 +64,29 @@ def get_waketimes(merged_df):
     return dict(zip(merged_df['test_name'], merged_df['waketime']))
 
 @except_none_log
+def get_compliance_summary_df(on_mode_df, standby_df, report_type, hdr):
+    
+    if report_type == 'estar':
+        cols = ['test_name', 'watts', 'limit', 'result']
+        csdf = pd.concat([on_mode_df[cols], standby_df[cols]])
+
+    else:
+        pps_list = ['default', 'brightest', 'hdr10'] if hdr else ['default_brightest']
+        test_names = [f'{pps}_measured' if f'{pps}_measured' in on_mode_df['test_name'].values else pps for pps in pps_list]
+        test_names.append('average_measured')
+        mask = on_mode_df['test_name'].apply(lambda test_name: test_name in test_names)
+        cols = ['test_name', 'watts', 'limit']
+        csdf = pd.concat([on_mode_df[mask], standby_df])[cols]
+        csdf['result'] = csdf['result'] = (csdf['watts'] < csdf['limit']).apply({True: 'Pass', False: 'Fail'}.get)
+        idx = on_mode_df[on_mode_df['test_name'] == 'average_measured'].index[0]
+        avg_ratio = on_mode_df.loc[idx, 'ratio']
+        idx = csdf[csdf['test_name'] == 'average_measured'].index[0]
+        csdf.loc[idx, 'result'] = 'Pass' if avg_ratio < 1 else 'Fail'
+        
+    return csdf.reset_index().drop('index', axis=1)
+
+
+@except_none_log
 def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
     def add_pps_tests(on_mode_df, cdf, abc_off_test, abc_on_tests, limit_func):
@@ -80,41 +103,42 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
                 'nits': np.mean([abc_on_lum, abc_off_lum]),
                 'watts': np.mean([abc_on_pwr, abc_off_pwr])
             }
+
+            measured_name = f'{abc_off_test}_measured'
+            on_mode_df = on_mode_df.append(pd.Series(data=measured, name=measured_name))
+            limit = limit_func(area=area, luminance=on_mode_df.loc[measured_name, 'nits'])
+            on_mode_df.loc[measured_name, 'limit'] = limit
         else:
-            measured = {
-                'nits': np.mean(abc_off_lum),
-                'watts': np.mean(abc_off_pwr)
-            }
-        measured_name = f'{abc_off_test}_measured'
-        on_mode_df = on_mode_df.append(pd.Series(data=measured, name=measured_name))
-        limit = limit_func(area=area, luminance=on_mode_df.loc[measured_name, 'nits'])
-        on_mode_df.loc[measured_name, 'limit'] = limit
+            limit = limit_func(area=area, luminance=on_mode_df.loc[abc_off_test, 'nits'])
+            on_mode_df.loc[abc_off_test, 'limit'] = limit
         return on_mode_df
 
     cdf = rsdf.set_index('test_name')
     on_mode_df = cdf.drop(cdf.index)
 
-    def_abc_tests = [test for test in ['default_100', 'default_35', 'default_12', 'default_3', 'default_low_backlight'] if test in cdf.index]
+    def_abc_tests = [test for test in ['default_100', 'default_35', 'default_12', 'default_3'] if test in cdf.index]
     on_mode_df = add_pps_tests(on_mode_df, cdf, 'default', def_abc_tests, limit_funcs['default'])
 
-    br_abc_tests = [test for test in ['brightest_100', 'brightest_35', 'brightest_12', 'brightest_3', 'brightest_low_backlight'] if
+    br_abc_tests = [test for test in ['brightest_100', 'brightest_35', 'brightest_12', 'brightest_3'] if
                     test in cdf.index]
     on_mode_df = add_pps_tests(on_mode_df, cdf, 'brightest', br_abc_tests, limit_funcs['brightest'])
     
     if hdr:
-        hdr_abc_tests = [test for test in ['hdr10_100', 'hdr10_35', 'hdr10_12', 'hdr10_3', 'hdr10_low_backlight'] if test in cdf.index]
+        hdr_abc_tests = [test for test in ['hdr10_100', 'hdr10_35', 'hdr10_12', 'hdr10_3'] if test in cdf.index]
         on_mode_df = add_pps_tests(on_mode_df, cdf, 'hdr10', hdr_abc_tests, limit_funcs['hdr'])
 
     on_mode_df = on_mode_df.reset_index()
-    on_mode_df['ratio'] = on_mode_df['watts']/on_mode_df['limit']
-    if report_type == 'estar':
-        s = f"{sum(on_mode_df['ratio'].dropna() < 1)}/{len(on_mode_df['ratio'].dropna())}"
-        data = {'test_name': 'passing_pps', 'ratio': s}
-    else:
-        data = {'test_name': 'average_measured', 'ratio': on_mode_df['ratio'].mean()}
-    on_mode_df = on_mode_df.append(data, ignore_index=True)
+
     
-    cols = ['test_name', 'preset_picture', 'abc', 'lux', 'mdd', 'nits', 'limit', 'watts', 'ratio']
+    if report_type == 'estar':
+        on_mode_df['result'] = (on_mode_df['watts'] < on_mode_df['limit']).apply({True: 'Pass', False: 'Fail'}.get)
+    else:
+        on_mode_df['ratio'] = on_mode_df['watts'] / on_mode_df['limit']
+        data = {'test_name': 'average_measured', 'ratio': on_mode_df['ratio'].mean()}
+        on_mode_df = on_mode_df.append(data, ignore_index=True)
+    
+    
+    cols = ['test_name', 'preset_picture', 'abc', 'lux', 'mdd', 'nits', 'limit', 'watts', 'ratio', 'result']
     cols = [col for col in cols if col in on_mode_df.columns]
     on_mode_df = on_mode_df[cols]
     return on_mode_df
@@ -123,10 +147,19 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
 def get_standby_df(rsdf):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of standby testing."""
     standby_df = rsdf[rsdf['test_name'].apply(lambda x: 'standby' in x)].copy()
-    standby_df['limit'] = 2
-    cols = ['test_name', 'qs', 'waketime', 'limit', 'watts']
+    limits = {
+        'standby': 2,
+        'standby_echo': 2,
+        'standby_google': 2,
+        'standby_multicast': 2,
+        'standby_passive': .5,
+        'standby_active_low': 2,
+    }
+    standby_df['limit'] = standby_df['test_name'].apply(limits.get)
+    cols = ['test_name', 'qs', 'lan', 'wan', 'waketime', 'limit', 'watts']
     cols = [col for col in cols if col in standby_df.columns]
     standby_df = standby_df.reset_index()[cols]
+    standby_df['result'] = (standby_df['watts'] < standby_df['limit']).apply({True: 'Pass', False: 'Fail'}.get)
 
     return standby_df
 
@@ -268,6 +301,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['lum_df'] = get_lum_df(paths)
+    data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
     return data
 
 
