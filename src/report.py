@@ -65,7 +65,6 @@ def round_if_float(x, decimals=1):
             return x
 
         
-        
 def clean_rsdf(rsdf, cols=None):
     """Clean the results summary dataframe so that it can be displayed in a pdf table."""
     rename_video = {
@@ -104,12 +103,15 @@ def clean_rsdf(rsdf, cols=None):
         'preset_picture': 'Preset Picture',
         'mdd': 'MDD',
         'qs': 'QS',
+        'lan': 'LAN',
+        'wan': 'WAN',
 
         'waketime': 'Wake Time (s)',
         'nits': 'Avg Luminance (Nits)',
         'limit': 'Power Limit (W)',
         'watts': 'Avg Power (W)',
         'ratio': 'Power/Power Limit',
+        'result': 'Result',
     }
     if cols is None:
         cols = [col for col in rename_cols.keys() if col in rsdf.columns]
@@ -169,29 +171,28 @@ def get_title_page(report_title, model):
 def on_mode_df_style(on_mode_df, report_type):
     """Style (highlight) on mode compliance table based on content (pass/fail results)."""
     # todo implement estar boolean (report_type
-    style = [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
     
+    style = []
     for i, row in on_mode_df.iterrows():
-        if pd.notnull(row['ratio']):
-            if isinstance(row['ratio'], str):
-                if eval(row['ratio']) == 1:
-                    color = 'green'
+        if 'ratio' in on_mode_df.columns:
+            if pd.notnull(row['ratio']):
+                if isinstance(row['ratio'], str):
+                    if eval(row['ratio']) == 1:
+                        color = 'green'
+                    else:
+                        color = 'red'
                 else:
-                    color = 'red'
-            else:
-                if row['ratio']<1:
-                    color = 'green'
-                else:
-                    color = 'red'
+                    if row['ratio']<1:
+                        color = 'green'
+                    else:
+                        color = 'red'
+                style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+        elif 'result' in on_mode_df.columns:
+            color = 'green' if row['result'] == 'Pass' else 'red'
             style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
-    
-    # for i, val in enumerate(on_mode_df['ratio']<1):
-    #     if val:
-    #         color = 'green'
-    #         style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
-    #     elif pd.notnull(on_mode_df['limit'].iloc[i]):
-    #         color = 'red'
-    #         style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+
+    if report_type != 'estar':
+        style += [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
 
     style += [
         ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
@@ -200,7 +201,10 @@ def on_mode_df_style(on_mode_df, report_type):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (1, 0), (-1, -1), 'CENTER')
     ]
-    break_lines = [i + 1 for i, test_name in on_mode_df['test_name'].iteritems() if 'measured' in test_name]
+    if report_type == 'estar':
+        break_lines = list(range(len(on_mode_df)))
+    else:
+        break_lines = [i + 1 for i, test_name in on_mode_df['test_name'].iteritems() if 'measured' in test_name]
     for i in break_lines:
         style.append(('BOX', (0, 1), (-1, i), 1.0, 'black'))
     return style
@@ -209,8 +213,8 @@ def on_mode_df_style(on_mode_df, report_type):
 def standby_df_style(standby_df):
     """Style (highlight) standby compliance table based on content (pass/fail results)."""
     style = []
-    for i, val in enumerate(standby_df['watts']<standby_df['limit']):
-        if val:
+    for i, val in standby_df['result'].iteritems():
+        if val=='Pass':
             color = 'green'
             style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
         elif pd.notnull(standby_df['limit'].iloc[i]):
@@ -226,6 +230,33 @@ def standby_df_style(standby_df):
     ]
     return style
 
+
+def compliance_summary_df_style(csdf):
+    """Style (highlight) standby compliance table based on content (pass/fail results)."""
+    style = []
+    for i, row in csdf.iterrows():
+        if row['test_name'] == 'average_measured' or 'measured' not in row['test_name']:
+            color = 'green' if row['result'] == 'Pass' else 'red'
+            style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
+        
+
+    style += [
+        ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Calibri'),
+        ('BOX', (0, 0), (-1, -1), 1.0, 'black'),
+        # ('GRID', (0, 0), (-1, -1), .25, 'black'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        # ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT')
+    ]
+    if 'average_measured' not in csdf['test_name'].values:
+        break_lines = list(range(len(csdf)))
+    else:
+        first_bl = [i + 1 for i, test_name in csdf['test_name'].iteritems() if test_name=='average_measured'][0]
+        break_lines = list(range(first_bl, len(csdf)))
+    for i in break_lines:
+        style.append(('BOX', (0, 1), (-1, i), 1.0, 'black'))
+    return style
 
 def get_limit_func_strings(limit_funcs, hdr):
     """Create strings to display the power limit functions within report."""
@@ -270,14 +301,21 @@ def add_persistence_summary(report, persistence_dfs, **kwargs):
                 
     return report
 
-@skip_and_warn
+# @skip_and_warn
 def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_funcs, hdr, rsdf, area, standby_df,
-                           waketimes, **kwargs):
+                           waketimes, csdf, **kwargs):
     
         
     with report.new_section('Compliance', page_break=False) as cat:
         
-        
+        with cat.new_section('Summary') as cs:
+            @skip_and_warn
+            def add_compliance_summary(report):
+                
+                table_df = clean_rsdf(csdf, cols=csdf.columns)
+                cs.create_element('summary table', table_df, grid_style=compliance_summary_df_style(csdf))
+            
+            add_compliance_summary(report)
         with cat.new_section('On Mode Tests') as on_mode_tests:
             @skip_and_warn
             def add_on_mode_tests(report):
@@ -318,11 +356,7 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                 table_df = clean_rsdf(standby_df, standby_df.columns)
                 standby.create_element('table', table_df, grid_style=standby_df_style(standby_df))
                 
-                # show standby wake times below standby table
                 standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
-                s = '<b>Time to Wake from Standby</b><br />'
-                s += '<br />'.join([f"{test}: {waketimes[test]} seconds" for test in standby_tests])
-                standby.create_element('waketimes', s)
                 
                 # time vs power (line) plot showing all standby tests
                 standby.create_element('standby_plot', plots.standby(merged_df, standby_tests))
@@ -410,7 +444,7 @@ def add_test_results_plots(report, rsdf, merged_df, **kwargs):
                 tn.create_element(f'{test_name} plot', plots.standard(tdf))
     return report
 
-# @skip_and_warn
+@skip_and_warn
 def add_test_specs(report, test_specs_df, **kwargs):
     with report.new_section('Test Specifics') as test_specs:
         style = [
@@ -448,7 +482,7 @@ def make_report(report_data):
     report = add_test_specs(report, **report_data)
     if report_data['report_type'] == 'pcl':
         report = add_persistence_summary(report, **report_data)
-
+    
     report = add_compliance_section(report, **report_data)
     report = add_supplemental(report, **report_data)
     report = add_test_results_table(report, **report_data)
@@ -458,7 +492,7 @@ def make_report(report_data):
                    'alternative': 'alternative-report.pdf',
                    'pcl': 'pcl-report.pdf'}.get(report_data['report_type'])
     build_report(report, filename, report_data['data_folder'], report_data['model'], report_data['test_date'])
-
+    
 
 def main():
     logger, docopt_args, data_folder = lf.start_script(__doc__, 'report.log')
