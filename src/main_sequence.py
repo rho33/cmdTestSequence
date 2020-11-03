@@ -24,24 +24,25 @@ import core.logfuncs as lf
 def get_test_order(docopt_args, ccf_pps_list):
     """Determine test order from option arguments."""
     test_order = ts.setup_tests(ccf_pps_list)
-    abc_def_tests = {
-        True: ['default', 'default_100', 'default_35', 'default_12', 'default_3'],
-        False: ['default', 'default_low_backlight']
-    }
-    test_order += abc_def_tests[bool(docopt_args['--defabc'])]
     
-    abc_br_tests = {
-        True: ['brightest', 'brightest_100', 'brightest_35', 'brightest_12', 'brightest_3'],
-        False: ['brightest', 'brightest_low_backlight']
-    }
-    test_order += abc_br_tests[bool(docopt_args['--brabc'])]
-    
+    test_order += ['default', 'brightest']
     if docopt_args['--hdr']:
-        abc_hdr_tests = {
-            True: ['hdr10', 'hdr10_100', 'hdr10_35', 'hdr10_12', 'hdr10_3'],
-            False: ['hdr10', 'hdr10_low_backlight']
-        }
-        test_order += abc_hdr_tests[bool(docopt_args['--hdrabc'])]
+        test_order += ['hdr10']
+    if not docopt_args['--defabc']:
+        test_order += ['default_low_backlight']
+    if not docopt_args['--brabc']:
+        test_order += ['brightest_low_backlight']
+    if docopt_args['--hdr'] and not docopt_args['--hdrabc']:
+        test_order += ['hdr10_low_backlight']
+        
+    for lux_level in [100, 35, 12, 3]:
+        if docopt_args['--defabc']:
+            test_order += [f'default_{lux_level}']
+        if docopt_args['--brabc']:
+            test_order += [f'brightest_{lux_level}']
+        if docopt_args['--hdr'] and docopt_args['--hdrabc']:
+            test_order += [f'hdr10_{lux_level}']
+    
     test_order += [
         'standby_passive',
         'passive_waketime',
