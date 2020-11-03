@@ -246,15 +246,25 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
         handles.append(handle)
 
     abc_on_lums = [point[0] for label, point in points.items() if label != 'ABC Off']
-    abc_on_power = [point[1] for label, point in points.items() if label != 'ABC Off']
-
-    abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
-    measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
-    plt.plot(*measured, marker='o', color='black', markersize=markersize)
-    handle = mlines.Line2D([], [], linewidth=0, label='Measured', marker='.', markersize=markersize, color='black')
-    handles.append(handle)
+    abc_on_power = [point[1] for label, point in points.items() if label not in ['ABC Off', 'Minimum Backlight']]
+    if abc_on_power:
+        abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
+        measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
+        plt.plot(*measured, marker='o', color='black', markersize=markersize)
+        handle = mlines.Line2D([], [], linewidth=0, label='Measured', marker='.', markersize=markersize, color='black')
+        handles.append(handle)
 
     min_lum, max_lum = 0, max(lums)*1.25
+    
+    if 'power_cap_func' in limit_func.keywords:
+        lum_bend = 0
+        prev_lim, new_lim = limit_func(area, luminance=lum_bend-1), limit_func(area, luminance=lum_bend)
+        while new_lim > prev_lim:
+            prev_lim = new_lim
+            lum_bend += 1
+            new_lim = limit_func(area, luminance=lum_bend)
+        
+        max_lum = max(max_lum, lum_bend*1.25)
     
     xs = np.arange(min_lum, max_lum, .1)
     ys = [limit_func(area=area, luminance=i) for i in xs]
@@ -265,7 +275,7 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
 
     plt.xlim(min_lum, max_lum)
     ax.legend(handles=handles)
-    title = {'default': 'POA Default PPS', 'brightest': 'POA Brightest PPS', 'hdr': 'POA HDR Default PPS'}.get(pps)
+    title = {'default': 'Compliance Chart: Default PPS', 'brightest': 'Compliance Chart: Brightest PPS', 'hdr': 'Compliance Chart: HDR Default PPS'}.get(pps)
     plt.title(title, fontsize=24)
     plt.close()
     return fig
