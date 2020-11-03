@@ -43,8 +43,12 @@ def get_test_order(docopt_args, ccf_pps_list):
         }
         test_order += abc_hdr_tests[bool(docopt_args['--hdrabc'])]
     test_order += [
-        'standby',
-        'waketime',
+        'standby_passive',
+        'passive_waketime',
+        'standby_active_low',
+        'active_low_waketime',
+        'standby_multicast',
+        'multicast_waketime',
         'standby_echo',
         'echo_waketime',
         'standby_google',
