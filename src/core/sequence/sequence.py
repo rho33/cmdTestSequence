@@ -35,8 +35,8 @@ def create_test_seq_df(test_order, rename_pps, qson=False):
     """Construct the test sequence DataFrame"""
     tests = get_tests()
     # columns argument ensures order of columns. Columns not listed (if any) will still appear after columns listed here
-    columns = ['test_name', 'test_time', 'video', 'preset_picture', 'abc', 'backlight', 'lux', 'mdd', 'qs',
-               'special_commands', 'ccf_pps']
+    columns = ['test_name', 'test_time', 'video', 'preset_picture', 'abc', 'backlight', 'lux', 'mdd', 'qs', 'lan',
+               'wan', 'special_commands',] # 'ccf_pps']
     df = pd.DataFrame(columns=columns)
     for test in test_order:
         df = df.append(tests[test], ignore_index=True)
@@ -45,14 +45,21 @@ def create_test_seq_df(test_order, rename_pps, qson=False):
     last_ccf_idx = df[df['test_name'].str.contains('ccf')].index[-1]
     prev_ccf_pps = None
     prev_peak = False
+    first = True
     for idx, row in df.loc[last_ccf_idx+1:].iterrows():
-        # apply load_ccf commands
-        if pd.notna(row['ccf_pps']):
+        # apply load_ccf command
+        if first:
             if pd.isna(row['special_commands']):
-                df.loc[idx, 'special_commands'] = f"load_ccf:{row['ccf_pps']}"
+                df.loc[idx, 'special_commands'] = f"load_ccf:default"
             else:
-                df.loc[idx, 'special_commands'] = f"load_ccf:{row['ccf_pps']}," + df.loc[idx, 'special_commands']
-            prev_ccf_pps = row['ccf_pps']
+                df.loc[idx, 'special_commands'] = f"load_ccf:default," + df.loc[idx, 'special_commands']
+            first = False
+        # if pd.notna(row['ccf_pps']):
+        #     if pd.isna(row['special_commands']):
+        #         df.loc[idx, 'special_commands'] = f"load_ccf:{row['ccf_pps']}"
+        #     else:
+        #         df.loc[idx, 'special_commands'] = f"load_ccf:{row['ccf_pps']}," + df.loc[idx, 'special_commands']
+        #     prev_ccf_pps = row['ccf_pps']
         # apply correct peak commands if any
         peak = pd.notna(row['special_commands']) and 'peak_test:1' in row['special_commands']
         if prev_peak and not peak:

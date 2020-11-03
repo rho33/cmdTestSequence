@@ -90,9 +90,10 @@ def get_simple_test_order(docopt_args):
 def main():
     logger, docopt_args, data_folder = lf.start_script(__doc__, 'main-sequence.log')
     
-    ccf_pps_list = ['default', 'brightest']
-    if docopt_args['--hdr']:
-        ccf_pps_list += ['hdr10_default']
+    # ccf_pps_list = ['default', 'brightest']
+    # if docopt_args['--hdr']:
+    #     ccf_pps_list += ['hdr10_default']
+    ccf_pps_list = ['default']
         
     if Path(sys.path[0]).joinpath('simple.txt').exists():
         test_order = get_simple_test_order(docopt_args)
