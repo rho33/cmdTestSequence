@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 import PySimpleGUI as sg
 import os
-import sequence as ts
+import core.sequence.sequence as ts
 import core.sequence.command_sequence as cs
 import core.logfuncs as lf
 from core.error_handling import error_popup
@@ -18,15 +18,15 @@ blank_entry_msg = lambda path, entry: f'Error in {path}\n\n"{entry}" cannot be b
     
     
 def get_test_order(pps_df):
-    ccf_pps_list = ['default', 'brightest']
+    ccf_pps_list = ['default'] #, 'brightest']
     if pd.notna(pps_df.loc['hdr10', 'pps_name']):
         ccf_pps_list += ['hdr10_default']
     test_order = ts.setup_tests(ccf_pps_list)
     test_order += [
         'default',
-        'default_3bar',
+        # 'default_3bar',
         'brightest',
-        'brightest_10%sdr',
+        # 'brightest_10%sdr',
         # 'hdr10'
     ]
     for lux_level in [None, 'low_backlight', 100, 35, 12, 3]:
@@ -44,8 +44,12 @@ def get_test_order(pps_df):
                 test_order.append(test_name)
     
     test_order += [
-        'standby',
-        'waketime',
+        'standby_passive',
+        'passive_waketime',
+        'standby_active_low',
+        'active_low_waketime',
+        'standby_multicast',
+        'multicast_waketime',
         'standby_echo',
         'echo_waketime',
         'standby_google',
