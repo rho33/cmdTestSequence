@@ -192,30 +192,34 @@ def apl_watts_scatter(df, test_names):
 def dimming_line_scatter(pps, rsdf, area, limit_funcs):
     def get_points(pps, rsdf):
         label_dict = {
-            'default': 'ABC Off',
-            'default_100': '100 Lux',
-            'default_35': '35 Lux',
-            'default_12': '12 Lux',
-            'default_3': '3 Lux',
-            'default_low_backlight': 'Minimum Backlight',
-
-            'brightest': 'ABC Off',
-            'brightest_100': '100 Lux',
-            'brightest_35': '35 Lux',
-            'brightest_12': '12 Lux',
-            'brightest_3': '3 Lux',
-            'brightest_low_backlight': 'Minimum Backlight',
-
-            'hdr': 'ABC Off',
-            'hdr_100': '100 Lux',
-            'hdr_35': '35 Lux',
-            'hdr_12': '12 Lux',
-            'hdr_3': '3 Lux',
-            'hdr_low_backlight': 'Minimum Backlight'
+            'default': {
+                'default': 'ABC Off',
+                'default_100': '100 Lux',
+                'default_35': '35 Lux',
+                'default_12': '12 Lux',
+                'default_3': '3 Lux',
+                'default_low_backlight': 'Minimum Backlight',
+            },
+            'brightest': {
+                'brightest': 'ABC Off',
+                'brightest_100': '100 Lux',
+                'brightest_35': '35 Lux',
+                'brightest_12': '12 Lux',
+                'brightest_3': '3 Lux',
+                'brightest_low_backlight': 'Minimum Backlight',
+            },
+            'hdr': {
+                'hdr10': 'ABC Off',
+                'hdr10_100': '100 Lux',
+                'hdr10_35': '35 Lux',
+                'hdr10_12': '12 Lux',
+                'hdr10_3': '3 Lux',
+                'hdr10_low_backlight': 'Minimum Backlight'
+            }
         }
-        mask = rsdf['test_name'].apply(lambda name: name in label_dict)
+        mask = rsdf['test_name'].apply(lambda name: name in label_dict[pps])
         cdf = rsdf[mask].copy()
-        cdf['label'] = cdf['test_name'].apply(label_dict.get)
+        cdf['label'] = cdf['test_name'].apply(label_dict[pps].get)
         points = dict(zip(cdf['label'], zip(cdf['nits'], cdf['watts'])))
         return points
 
