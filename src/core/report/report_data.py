@@ -200,8 +200,8 @@ def power_cap_funcs():
 
 @except_none_log
 def get_limit_funcs(report_type):
-    def power_limit(area, luminance, sf, a, b, c, d, e, f, power_cap_func=None):
-        limit = sf * ((a * area + b) * (e * luminance + f) + c * area + d)
+    def power_limit(area, luminance, sf, a, b, c, d, power_cap_func=None):
+        limit = sf * ((a * area + b) * luminance + c * area + d)
         if power_cap_func is not None:
             return min(limit, power_cap_func(area))
         else:

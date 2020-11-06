@@ -262,7 +262,7 @@ def get_limit_func_strings(limit_funcs, hdr):
     """Create strings to display the power limit functions within report."""
     def get_func_str(limit_func):
         coeffs = limit_func.keywords
-        func_str = f"{coeffs['sf']:.2f}*(({coeffs['a']:.3f}*area+{coeffs['b']:.2f})*({coeffs['e']:.2f}*luminance+{coeffs['f']:.2f}) + {coeffs['c']:.2f}*area+{coeffs['d']:.2f})"
+        func_str = f"{coeffs['sf']:.2f}*(({coeffs['a']:.3f}*area+{coeffs['b']:.2f})*luminance + {coeffs['c']:.2f}*area + {coeffs['d']:.2f})"
         if 'power_cap_func' in coeffs.keys():
             pcf = coeffs['power_cap_func'].keywords
             power_cap_func_str = f"{pcf['sf']:.2f}*(({pcf['a']:.3f}*area)+{pcf['b']:.3f})"
