@@ -293,7 +293,11 @@ def get_coverage(coordinates_df, colorspace):
 
 @except_none_log
 def get_lum_df(paths):
-    return pd.read_csv(paths['lum_profile'], header=None)
+    lum_df = pd.read_csv(paths['lum_profile'], header=None)
+    height, width = lum_df.shape
+    lum_df.columns = map(lambda x: 100 * x / width, lum_df.columns)
+    lum_df.index = map(lambda x: 100 * (1 - x / height), lum_df.index)
+    return lum_df
 
 
 def get_ccf_df(merged_df, data_folder):
