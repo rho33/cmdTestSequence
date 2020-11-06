@@ -19,7 +19,7 @@ blank_entry_msg = lambda path, entry: f'Error in {path}\n\n"{entry}" cannot be b
     
 def get_test_order(pps_df):
     ccf_pps_list = ['default'] #, 'brightest']
-    if pd.notna(pps_df.loc['hdr10', 'pps_name']):
+    if 'hdr10' in pps_df.index and pd.notna(pps_df.loc['hdr10', 'pps_name']):
         ccf_pps_list += ['hdr10_default']
     test_order = ts.setup_tests(ccf_pps_list)
     test_order += [
@@ -134,7 +134,7 @@ def get_qson(path):
 def main():
     logger, docopt__args, data_folder = lf.start_script(__doc__, 'pcl-sequence.log')
 
-    entry_forms_template = Path(sys.path[0]).joinpath('entry-forms.xlsx')
+    entry_forms_template = Path(sys.path[0]).joinpath(r'config\entry-forms.xlsx')
     entry_forms = Path(data_folder).joinpath("entry-forms.xlsx")
     
     logger.info(f'Entry Forms Exist: {entry_forms.exists}')
