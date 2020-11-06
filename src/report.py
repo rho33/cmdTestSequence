@@ -396,7 +396,7 @@ def add_overlay(report, rsdf, merged_df, test_names, **kwargs):
     report.create_element('plot', plots.overlay(merged_df, test_names))
 
 @skip_and_warn
-def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_type, **kwargs):
+def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
         with supp.new_section('Stabilization') as stab:
             stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
@@ -418,6 +418,7 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, report_t
                 with supp.new_section('Spectral Power Distribution') as spd:
                     spd.create_element('spectral plot', plots.spectral_power_distribution(spectral_df))
                     spd.create_element('chromaticity plot', plots.chromaticity(spectral_df))
+                    spd.create_element('spectral coordinates table', scdf)
                     # todo chromaticity table
             add_spectral_power_distribution(report)
     return report
