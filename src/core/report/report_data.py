@@ -246,6 +246,52 @@ def get_spectral_df(paths):
     return df
 
 @except_none_log
+def get_spectral_coordinates_df(paths):
+    df = pd.read_csv(paths['spectral_profile']).iloc[18:20]
+    df = df.set_index(df.columns[0]).astype(float)
+    df.index.name = ''
+    return df.reset_index()
+
+
+def get_coverage(coordinates_df, colorspace):
+    def point_on_triangle(pt1, pt2, pt3):
+        """Random point on the triangle with vertices pt1, pt2 and pt3."""
+        s, t = sorted([random.random(), random.random()])
+        return (s * pt1[0] + (t - s) * pt2[0] + (1 - t) * pt3[0],
+                s * pt1[1] + (t - s) * pt2[1] + (1 - t) * pt3[1])
+    
+    def isInside(x1, y1, x2, y2, x3, y3, x, y):
+        """A function to check whether point P(x, y) lies inside the triangle formed by A(x1, y1), B(x2, y2) and C(x3, y3)"""
+        
+        def area(x1, y1, x2, y2, x3, y3):
+            """A utility function to calculate area of triangle formed by (x1, y1), (x2, y2), and (x3, y3)"""
+            return abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2.0)
+            # Calculate area of triangle ABC
+        
+        A = area(x1, y1, x2, y2, x3, y3)
+        # Calculate area of triangle PBC
+        A1 = area(x, y, x2, y2, x3, y3)
+        # Calculate area of triangle PAC
+        A2 = area(x1, y1, x, y, x3, y3)
+        # Calculate area of triangle PAB
+        A3 = area(x1, y1, x2, y2, x, y)
+        # Check if sum of A1, A2 and A3
+        # is same as A (rounding to avoid inequalities caused by floating point arithmetic)
+        if round(A, 10) == round(A1 + A2 + A3, 10):
+            return True
+        else:
+            return False
+    
+    x1, y1, x2, y2, x3, y3 = df[['Red', 'Green', 'Blue']].T.values.ravel()
+    total, inside_total = 0, 0
+    for _ in range(100000):
+        x, y = point_on_triangle(*colorspace._primaries)
+        inside_total += isInside(x1, y1, x2, y2, x3, y3, x, y)
+        total += 1
+    return inside_total / total
+
+
+@except_none_log
 def get_lum_df(paths):
     return pd.read_csv(paths['lum_profile'], header=None)
 
@@ -289,6 +335,7 @@ def get_report_data(paths, data_folder, docopt_args):
     if data['report_type']=='pcl':
         data['persistence_dfs'] = get_persistence_dfs(paths)
         data['spectral_df'] = get_spectral_df(paths)
+        data['scdf'] = get_spectral_coordinates_df(paths)
     else:
         data['persistence_dfs'] = None
         data['spectral_df'] = None
@@ -302,6 +349,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['lum_df'] = get_lum_df(paths)
     data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
+    
     return data
 
 
