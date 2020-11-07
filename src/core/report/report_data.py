@@ -125,7 +125,7 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
     
     if hdr:
         hdr_abc_tests = [test for test in ['hdr10_100', 'hdr10_35', 'hdr10_12', 'hdr10_3'] if test in cdf.index]
-        on_mode_df = add_pps_tests(on_mode_df, cdf, 'hdr10', hdr_abc_tests, limit_funcs['hdr'])
+        on_mode_df = add_pps_tests(on_mode_df, cdf, 'hdr10', hdr_abc_tests, limit_funcs['hdr10'])
 
     on_mode_df = on_mode_df.reset_index()
 
@@ -343,6 +343,7 @@ def get_report_data(paths, data_folder, docopt_args):
     else:
         data['persistence_dfs'] = None
         data['spectral_df'] = None
+        data['scdf'] = None
     data['waketimes'] = get_waketimes(data['merged_df'])
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
     data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])

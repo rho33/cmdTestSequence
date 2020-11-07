@@ -271,7 +271,7 @@ def get_limit_func_strings(limit_funcs, hdr):
     lfs = {
         'default': '<strong>Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['default']),
         'brightest': '<strong>Brightest PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['brightest']),
-        'hdr': '<strong>HDR Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['hdr'])
+        'hdr': '<strong>HDR Default PPS Power Limit Function</strong><br/>' + get_func_str(limit_funcs['hdr10'])
     }
     return lfs
 
@@ -346,7 +346,7 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                 if hdr:
                     on_mode_tests.create_element(
                         'hdr dimming plot',
-                        plots.dimming_line_scatter('hdr', rsdf, area, limit_funcs)
+                        plots.dimming_line_scatter('hdr10', rsdf, area, limit_funcs)
                     )
             add_on_mode_tests(report)
         with cat.new_section('Standby') as standby:

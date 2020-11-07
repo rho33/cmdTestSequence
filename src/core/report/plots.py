@@ -208,7 +208,7 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
                 'brightest_3': '3 Lux',
                 'brightest_low_backlight': 'Minimum Backlight',
             },
-            'hdr': {
+            'hdr10': {
                 'hdr10': 'ABC Off',
                 'hdr10_100': '100 Lux',
                 'hdr10_35': '35 Lux',
@@ -255,7 +255,8 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
         abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
         measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
         plt.plot(*measured, marker='o', color='black', markersize=markersize)
-        handle = mlines.Line2D([], [], linewidth=0, label='Measured', marker='.', markersize=markersize, color='black')
+        pps_label = pps.title() if pps != 'hdr10' else pps.upper()
+        handle = mlines.Line2D([], [], linewidth=0, label=f'Poa_{pps_label}', marker='.', markersize=markersize, color='black')
         handles.append(handle)
 
     min_lum, max_lum = 0, max(lums)*1.25
