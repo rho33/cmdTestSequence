@@ -174,7 +174,7 @@ def on_mode_df_style(on_mode_df, report_type):
     
     style = []
     for i, row in on_mode_df.iterrows():
-        if 'ratio' in on_mode_df.columns:
+        if row['test_name']=='average_measured' and 'ratio' in on_mode_df.columns:
             if pd.notnull(row['ratio']):
                 if isinstance(row['ratio'], str):
                     if eval(row['ratio']) == 1:
@@ -192,7 +192,7 @@ def on_mode_df_style(on_mode_df, report_type):
             style.append(('BACKGROUND', (-1, i + 1), (-1, i + 1), color))
 
     if report_type != 'estar':
-        style += [('BACKGROUND', (0, -1), (-1, -1), 'lightgrey')]
+        style += [('BACKGROUND', (0, -1), (-2, -1), 'lightgrey')]
 
     style += [
         ('BACKGROUND', (0, 0), (-1, 0), 'lightgrey'),
@@ -258,6 +258,7 @@ def compliance_summary_df_style(csdf):
         style.append(('BOX', (0, 1), (-1, i), 1.0, 'black'))
     return style
 
+
 def get_limit_func_strings(limit_funcs, hdr):
     """Create strings to display the power limit functions within report."""
     def get_func_str(limit_func):
@@ -301,66 +302,90 @@ def add_persistence_summary(report, persistence_dfs, **kwargs):
                 
     return report
 
-# @skip_and_warn
+@skip_and_warn
 def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_funcs, hdr, rsdf, area, standby_df,
                            waketimes, csdf, **kwargs):
     
         
     with report.new_section('Compliance', page_break=False) as cat:
-        
-        with cat.new_section('Summary') as cs:
+        with cat.new_section('On Mode Summary', page_break=False) as on_mode_summary:
             @skip_and_warn
-            def add_compliance_summary(report):
-                
-                table_df = clean_rsdf(csdf, cols=csdf.columns)
-                cs.create_element('summary table', table_df, grid_style=compliance_summary_df_style(csdf))
-            
-            add_compliance_summary(report)
-        with cat.new_section('On Mode Tests') as on_mode_tests:
-            @skip_and_warn
-            def add_on_mode_tests(report):
+            def add_compliance_summary_on_mode(report):
                 table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
+
                 style = on_mode_df_style(on_mode_df, report_type)
-                on_mode_tests.create_element('on mode table', table_df, grid_style=style)
+                rename_tests = {
+                    'default': 'Default ABC Off',
+                    'default_100': 'Default 100 Lux',
+                    'default_35': 'Default 35 Lux',
+                    'default_12': 'Default 12 Lux',
+                    'default_3': 'Default 3 Lux',
+                    'default_measured': 'P<sub rise=2>oa_Default</sub>',
+                    'brightest': 'Brightest ABC Off',
+                    'brightest_100': 'Brightest 100 Lux',
+                    'brightest_35': 'Brightest 35 Lux',
+                    'brightest_12': 'Brightest 12 Lux',
+                    'brightest_3': 'Brightest 3 Lux',
+                    'brightest_measured': 'P<sub rise=2>oa_Brightest</sub>',
+                    'hdr10': 'HDR10 ABC Off',
+                    'hdr10_100': 'HDR10 100 Lux',
+                    'hdr10_35': 'HDR10 35 Lux',
+                    'hdr10_12': 'HDR10 12 Lux',
+                    'hdr10_3': 'HDR10 3 Lux',
+                    'hdr10_measured': 'P<sub rise=2>oa_HDR10</sub>',
+                    'average_measured': 'P<sub rise=2>oa_Average</sub>'
+                }
+                table_df = table_df.replace(rename_tests)
+                on_mode_summary.create_element('on mode table', table_df, grid_style=style)
                 if report_type == 'estar':
                     # todo: implement estar text
                     #   probably dependent on how get_on_mode_df implements
                     #   potentially include within same function
                     pass
                 else:
-                    on_mode_tests.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
-                
+                   on_mode_summary.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
+    
                 # display power limit functions below on mode table
                 limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
-                on_mode_tests.create_element('default limit function', limit_func_strings['default'])
-                on_mode_tests.create_element('brightest limit function', limit_func_strings['brightest'])
+                on_mode_summary.create_element('default limit function', limit_func_strings['default'])
+                on_mode_summary.create_element('brightest limit function', limit_func_strings['brightest'])
                 if hdr:
-                    on_mode_tests.create_element('hdr limit function', limit_func_strings['hdr'])
-                
+                    on_mode_summary.create_element('hdr limit function', limit_func_strings['hdr'])
+            add_compliance_summary_on_mode(report)
+        
+        with cat.new_section('Standby Summary') as standby_summary:
+            @skip_and_warn
+            def add_compliance_summary_standby(report):
+                table_df = clean_rsdf(standby_df, standby_df.columns)
+                rename_tests = {
+                    'standby_passive': 'P<sub rise=2>STANDBY-PASSIVE</sub>',
+                    'standby_google': 'P<sub rise=2>GOOGLE-STANDBY-ACTIVE-LOW</sub>',
+                    'standby_echo': 'P<sub rise=2>AMAZON-STANDBY-ACTIVE-LOW</sub>',
+                }
+                standby_summary.create_element('table', table_df.replace(rename_tests), grid_style=standby_df_style(standby_df))
+            add_compliance_summary_standby(report)
+        with cat.new_section('On Mode Charts') as on_mode_charts:
+            @skip_and_warn
+            def add_on_mode_charts(report):
                 # add scatter plot for each pps showing tv power measurements in relation to the relevant limit function line
                 for pps in ['default', 'brightest']:
-                    on_mode_tests.create_element(
+                    on_mode_charts.create_element(
                         f'{pps} dimming plot',
                         plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
                     )
                 if hdr:
-                    on_mode_tests.create_element(
+                    on_mode_charts.create_element(
                         'hdr dimming plot',
                         plots.dimming_line_scatter('hdr10', rsdf, area, limit_funcs)
                     )
-            add_on_mode_tests(report)
-        with cat.new_section('Standby') as standby:
-            # add standby table
+            add_on_mode_charts(report)
+        with cat.new_section('Standby Chart') as standby_chart:
             @skip_and_warn
-            def add_standby(report):
-                table_df = clean_rsdf(standby_df, standby_df.columns)
-                standby.create_element('table', table_df, grid_style=standby_df_style(standby_df))
-                
+            def add_standby_chart(report):
                 standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
-                
                 # time vs power (line) plot showing all standby tests
-                standby.create_element('standby_plot', plots.standby(merged_df, standby_tests))
-            add_standby(report)
+                standby_chart.create_element('standby_plot', plots.standby(merged_df, standby_tests))
+            add_standby_chart(report)
     return report
 
 @skip_and_warn
