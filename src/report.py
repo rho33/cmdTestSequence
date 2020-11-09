@@ -308,34 +308,53 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
     
         
     with report.new_section('Compliance', page_break=False) as cat:
-        with cat.new_section('On Mode Summary', page_break=False) as on_mode_summary:
+        with cat.new_section('On Mode Summary') as on_mode_summary:
             @skip_and_warn
             def add_compliance_summary_on_mode(report):
                 table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
 
                 style = on_mode_df_style(on_mode_df, report_type)
-                rename_tests = {
-                    'default': 'Default ABC Off',
-                    'default_100': 'Default 100 Lux',
-                    'default_35': 'Default 35 Lux',
-                    'default_12': 'Default 12 Lux',
-                    'default_3': 'Default 3 Lux',
-                    'default_measured': 'P<sub rise=2>oa_Default</sub>',
-                    'brightest': 'Brightest ABC Off',
-                    'brightest_100': 'Brightest 100 Lux',
-                    'brightest_35': 'Brightest 35 Lux',
-                    'brightest_12': 'Brightest 12 Lux',
-                    'brightest_3': 'Brightest 3 Lux',
-                    'brightest_measured': 'P<sub rise=2>oa_Brightest</sub>',
-                    'hdr10': 'HDR10 ABC Off',
-                    'hdr10_100': 'HDR10 100 Lux',
-                    'hdr10_35': 'HDR10 35 Lux',
-                    'hdr10_12': 'HDR10 12 Lux',
-                    'hdr10_3': 'HDR10 3 Lux',
-                    'hdr10_measured': 'P<sub rise=2>oa_HDR10</sub>',
-                    'average_measured': 'P<sub rise=2>oa_Average</sub>'
-                }
-                table_df = table_df.replace(rename_tests)
+                if report_type != 'estar':
+                    rename_tests = {
+                        'default': 'P<sub rise=2>oa_Default_ABC_Off</sub>',
+                        'default_100': 'P<sub rise=2>oa_Default_100Lux</sub>',
+                        'default_35': 'P<sub rise=2>oa_Default_35Lux</sub>',
+                        'default_12': 'P<sub rise=2>oa_Default_12Lux</sub>',
+                        'default_3': 'P<sub rise=2>oa_Default_3Lux</sub>',
+                        'default_measured': 'P<sub rise=2>oa_Default</sub>',
+                        
+                        'brightest': 'P<sub rise=2>oa_Brightest_ABC_Off</sub>',
+                        'brightest_100': 'P<sub rise=2>oa_Brightest_100Lux</sub>',
+                        'brightest_35': 'P<sub rise=2>oa_Brightest_35Lux</sub>',
+                        'brightest_12': 'P<sub rise=2>oa_Brightest_12Lux</sub>',
+                        'brightest_3': 'P<sub rise=2>oa_Brightest_3Lux</sub>',
+                        'brightest_measured': 'P<sub rise=2>oa_Brightest</sub>',
+                        
+                        'hdr10': 'P<sub rise=2>oa_HDR10_ABC_Off</sub>',
+                        'hdr10_100': 'P<sub rise=2>oa_HDR10_100Lux</sub>',
+                        'hdr10_35': 'P<sub rise=2>oa_HDR10_35Lux</sub>',
+                        'hdr10_12': 'P<sub rise=2>oa_HDR10_12Lux</sub>',
+                        'hdr10_3': 'P<sub rise=2>oa_HDR10_3Lux</sub>',
+                        'hdr10_measured': 'P<sub rise=2>oa_HDR10</sub>',
+                        'average_measured': 'P<sub rise=2>oa_Average</sub>'
+                    }
+    
+                    table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
+                    if 'default_100' not in table_df['Test Name'].values:
+                        table_df = table_df.replace({'P<sub rise=2>oa_Default_ABC_Off</sub>': 'P<sub rise=2>oa_Default</sub>'})
+                    if 'brightest_100' not in table_df['Test Name'].values:
+                        table_df = table_df.replace({'P<sub rise=2>oa_Brightest_ABC_Off</sub>':'P<sub rise=2>oa_Brightest</sub>'})
+                    if 'hdr10_100' not in table_df['Test Name'].values:
+                        table_df = table_df.replace({'P<sub rise=2>oa_HDR10_ABC_Off</sub>': 'P<sub rise=2>oa_HDR10</sub>'})
+                    # table_df = table_df.rename(columns={'Test Name': ''})
+                    table_df = table_df.replace({'default_measured': '', 'brightest_measured': '', 'hdr10_measured': '', 'average_measured': ''})
+                else:
+                    rename_tests = {
+                        'default': 'P<sub rise=2>on_Default</sub>',
+                        'brightest': 'P<sub rise=2>on_Brightest</sub>',
+                        'hdr10': 'P<sub rise=2>on_HDR10</sub>',
+                    }
+                    table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
                 on_mode_summary.create_element('on mode table', table_df, grid_style=style)
                 if report_type == 'estar':
                     # todo: implement estar text
@@ -343,7 +362,10 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                     #   potentially include within same function
                     pass
                 else:
-                   on_mode_summary.create_element('text', 'Average Measured / Limit must be less than 1.0 to comply')
+                    text = "P<sub rise=2>oa_Average</sub> is the average Power/Power Limit of P<sub " \
+                           "rise=2>oa_Default</sub>, P<sub rise=2>oa_Brightest</sub>, and P<sub rise=2>oa_HDR10</sub> " \
+                           "(if applicable). P<sub rise=2>oa_Average</sub> must be less than 1.0 to comply. "
+                    on_mode_summary.create_element('text', text)
     
                 # display power limit functions below on mode table
                 limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
@@ -458,7 +480,7 @@ def add_test_results_table(report, rsdf, **kwargs):
 @skip_and_warn
 def add_test_results_plots(report, rsdf, merged_df, **kwargs):
     '''Test Specifics section displays test metadata and tv specs in table'''
-    with report.new_section('Test Result Plots', page_break=False) as trp:
+    with report.new_section('Plots of All Tests', page_break=False) as trp:
         for test_name in rsdf['test_name']:
             tdf = merged_df.query('test_name==@test_name').reset_index()
             tag = tdf.iloc[0]['tag']
