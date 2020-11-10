@@ -49,6 +49,7 @@ PATTERNS = {
     'results_summary': 'results-summary.csv',
     'partial_test_seq': 'partial-ts.csv',
     'partial_cmd_seq': 'partial-cs.csv',
+    'ccf_input': '*ccf-input*.csv'
 }
 
 
