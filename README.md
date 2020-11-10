@@ -213,7 +213,7 @@ The resulting partial test sequence will look something like this:
 ![partial-test-seq](img/partial-test-sequence.png)
 
 #### partial_sequence.exe Output Files
-# todo: include overview of what happens after partial test sequence as been completed
+todo: include overview of what happens after partial test sequence as been completed
 - TV Test System app will drop datalog into data_folder like any other test and report script will handle stitching tests into merged
 
 The output files of partial_sequence.exe are the same as the output files of main_sequence.exe, test-sequence.csv and command-sequence.csv.
@@ -225,10 +225,39 @@ Files in the Partial subdirectory are only included for records and manual debug
 
 
 
-# Color Correction Factor Script
+# ccf.exe - Color Correction Factor Script
+
+    Usage:
+    ccf.exe <data_folder> [options]
+     
+    Arguments:
+      data_folder       folder with test data
+
+    Options:
+      -h --help
+
+
 This script calculates correction factors which Labview then applies to its luminance readings.
 It does this by comparing the test camera's luminance readings on still images to luminance readings from a reference photometer.  
 There is a correction factor (linear transformation) calculated for each preset picture setting.
+
+#### ccf.exe input file
+
+in order for this script to work there must be a file named ccf-input.csv within the data_folder.
+The format of this csv is shown below. It consists of 3 columns: pps, photometer, and camera.
+The pps refers to the preset picture setting.
+The photometer and camera values of each row indicate the corresponding photometer and camera luminance readings which will be used to calculate the color correction factor.
+More columns (such as signal level) can be added if desired but they will not be used in the calculation. 
+
+![ccf-input](img/ccf-input.png)
+
+#### ccf.exe output file
+
+![ccf-output](img/ccf-output.png)
+
+Two copies of the output file are made. One is dropped in the app's AppData directory ("C:\Users\user\AppData\Local\DMC\TV Luminance Test System")
+while the other is dropped in the data_folder.
+A copy of ccf-input.csv is also saved to the app's AppData directory.
 
 # Report Scripts
 The report scripts take the results of TV testing and generate pdf reports.
