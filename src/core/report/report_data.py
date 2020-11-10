@@ -1,9 +1,11 @@
 import sys
+import random
 from pathlib import Path
 from functools import partial
 import warnings
 import numpy as np
 import pandas as pd
+from colour.models import BT2020_COLOURSPACE, BT709_COLOURSPACE
 from . import merge
 from ..error_handling import permission_popup, except_none_log
 from ..filefuncs import archive
@@ -282,7 +284,7 @@ def get_coverage(coordinates_df, colorspace):
         else:
             return False
     
-    x1, y1, x2, y2, x3, y3 = df[['Red', 'Green', 'Blue']].T.values.ravel()
+    x1, y1, x2, y2, x3, y3 = coordinates_df[['Red', 'Green', 'Blue']].T.values.ravel()
     total, inside_total = 0, 0
     for _ in range(100000):
         x, y = point_on_triangle(*colorspace._primaries)
@@ -340,6 +342,8 @@ def get_report_data(paths, data_folder, docopt_args):
         data['persistence_dfs'] = get_persistence_dfs(paths)
         data['spectral_df'] = get_spectral_df(paths)
         data['scdf'] = get_spectral_coordinates_df(paths)
+        data['bt2020_coverage'] = get_coverage(data['scdf'], BT2020_COLOURSPACE)
+        data['bt709_coverage'] = get_coverage(data['scdf'], BT709_COLOURSPACE)
     else:
         data['persistence_dfs'] = None
         data['spectral_df'] = None
@@ -354,6 +358,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['lum_df'] = get_lum_df(paths)
     data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
+    
     
     return data
 
