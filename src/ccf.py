@@ -1,5 +1,5 @@
 """Usage:
-ccf.exe <input_path> [options]
+ccf.exe <data_folder> [options]
 ccf.exe create <output_folder>
 
 Options:
@@ -11,9 +11,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
-from docopt import docopt
 from core.error_handling import permission_popup
 import core.logfuncs as lf
+import core.filefuncs as ff
 
 
 @lf.log_output
@@ -40,10 +40,8 @@ def get_final_trendline(trendlines, w_outputs):
 
 @permission_popup
 def main():
-    logger = lf.appdata_logger('ccf.log')
-    logger.info(str(sys.argv))
-    docopt_args = docopt(__doc__)
-    logger.info(docopt_args)
+    logger, docopt_args, data_folder = lf.start_script(__doc__, 'ccf.log')
+    paths = ff.get_paths(data_folder)
     
     if docopt_args['create']:
         path = docopt_args['<output_folder>']
@@ -55,17 +53,23 @@ def main():
             shutil.copy(src, dst)
     else:
         drop_cols = ['photometer', 'camera']
-        input_df = pd.read_csv(docopt_args['<input_path>']).dropna(subset=drop_cols, how='all')
+        input_df = pd.read_csv(paths['ccf_input']).dropna(subset=drop_cols, how='all')
+        # input_df = pd.read_csv(docopt_args['<input_path>']).dropna(subset=drop_cols, how='all')
         final_trendlines = {}
         for pps in input_df['pps'].unique():
             logger.info(f'\nPPS: {pps}')
             pps_df = input_df.query('pps==@pps')
             final_trendlines[pps] = get_trendline(pps_df)
             
-        output_path = 'ccf-output.csv'
+        # output_path =
         # if docopt_args['-o'] is not None:
         #     output_path = Path(docopt_args['-o']).joinpath(output_path)
-        pd.DataFrame(data=final_trendlines, index=['slope', 'intercept']).T.to_csv(output_path)
+        output_df = pd.DataFrame(data=final_trendlines, index=['slope', 'intercept']).T
+        output_df.to_csv(Path(data_folder).joinpath('ccf-output.csv'))
+        output_df.to_csv(Path(ff.APPDATA_DIR).joinpath('ccf-output.csv'))
+        
+        input_df.to_csv(Path(data_folder).joinpath('ccf-input.csv'), index=False)
+        input_df.to_csv(Path(ff.APPDATA_DIR).joinpath('ccf-input.csv'), index=False)
 
 
 
