@@ -251,12 +251,14 @@ More columns (such as signal level) can be added if desired but they will not be
 
 ![ccf-input](img/ccf-input.png)
 
-#### ccf.exe output file
+#### ccf.exe output file (ccf-output.csv)
+The output file contains the slope and intercept of the color correction factor (linear transformation) to be applied to each preset picture setting. 
+
 
 ![ccf-output](img/ccf-output.png)
 
 Two copies of the output file are made. One is dropped in the app's AppData directory ("C:\Users\user\AppData\Local\DMC\TV Luminance Test System")
-while the other is dropped in the data_folder.
+for the app to use while the other is dropped in the data_folder.
 A copy of ccf-input.csv is also saved to the app's AppData directory.
 
 # Report Scripts
