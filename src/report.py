@@ -458,15 +458,16 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, re
         with supp.new_section('Light Directionality', page_break=False) as ld:
             ld = add_light_directionality(ld, lum_df)
         
-        # todo: add spectral profile section for PCL tests
         if report_type == 'pcl':
             @skip_and_warn
             def add_spectral_power_distribution(report):
                 with supp.new_section('Spectral Power Distribution') as spd:
                     spd.create_element('spectral plot', plots.spectral_power_distribution(spectral_df))
+                    spd.create_element('cheap page break', '<br /><br /><br /><br /><br /><br /><br /><br /><br /><br />')
                     spd.create_element('chromaticity plot', plots.chromaticity(spectral_df))
                     spd.create_element('spectral coordinates table', scdf)
-                    # todo chromaticity table
+                    text = f" BT.2020 Colorspace Coverage: {100*kwargs['bt2020_coverage']:.0f}%<br /> BT.709 Colorspace Coverage: {100*kwargs['bt709_coverage']:.0f}%"
+                    spd.create_element('coverage', text)
             add_spectral_power_distribution(report)
     return report
 
