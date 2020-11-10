@@ -10,6 +10,8 @@ Options:
   -h --help
 """
 import sys
+import shutil
+from pathlib import Path
 import pandas as pd
 import core.logfuncs as lf
 import core.filefuncs as ff
@@ -24,7 +26,12 @@ def main():
     tags = [int(i) for i in docopt_args['<tags>']]
     mask = (test_seq_df['test_name'].isin(['screen_config', 'stabilization'])) | (test_seq_df['tag'].isin(tags))
     
-    if paths['ccf'] is None:
+    if paths['ccf'] is not None:
+        src, dst = str(paths['ccf']),  str(Path(ff.APPDATA_DIR).joinpath('ccf-output.csv'))
+        shutil.copy(src, dst)
+        src, dst = str(paths['ccf_input']), str(Path(ff.APPDATA_DIR).joinpath('ccf-input.csv'))
+        shutil.copy(src, dst)
+    else:
         mask = mask | (test_seq_df['test_name'].apply(lambda name: 'ccf' in name))
     
     partial_test_seq_df = test_seq_df[mask].reset_index().drop('index', axis=1)
