@@ -145,9 +145,38 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
     return on_mode_df
 
 @except_none_log
-def get_standby_df(rsdf):
+def get_standby_df(rsdf, test_specs_df):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of standby testing."""
+    
     standby_df = rsdf[rsdf['test_name'].apply(lambda x: 'standby' in x)].copy()
+    sal_row = {
+        'test_name': 'standby',
+        'lan': 'yes',
+        'wan': 'no',}
+    try:
+        sal_row['waketime'] = float(test_specs_df.loc['Standby Active Low Waketime (seconds)', 0])
+    except:
+        pass
+    try:
+        sal_row['watts'] = float(test_specs_df.loc['Standby Active Low Power (W)', 0])
+    except:
+        pass
+    standby_df = standby_df.append(sal_row, ignore_index=True)
+    sp_row = {
+        'test_name': 'standby_passive',
+        'lan': 'no',
+        'wan': 'no',}
+    try:
+        sp_row['waketime'] = float(test_specs_df.loc['Standby Passive Waketime (seconds)', 0])
+    except:
+        pass
+    try:
+        sp_row['watts'] = float(test_specs_df.loc['Standby Passive Power (W)', 0])
+    except:
+        pass
+    standby_df = standby_df.append(sp_row, ignore_index=True)
+    
+    
     limits = {
         'standby': 2,
         'standby_echo': 2,
@@ -354,7 +383,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['area'] = get_screen_area(data['test_specs_df'])
     data['model'] = get_model(data['test_specs_df'])
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
-    data['standby_df'] = get_standby_df(data['rsdf'])
+    data['standby_df'] = get_standby_df(data['rsdf'], data['test_specs_df'])
     data['lum_df'] = get_lum_df(paths)
     data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
     
