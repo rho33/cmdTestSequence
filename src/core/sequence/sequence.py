@@ -31,12 +31,14 @@ def setup_tests(ccf_pps_list, lum_profile=True):
     return test_order
 
 
-def create_test_seq_df(test_order, rename_pps, qson=False):
+def create_test_seq_df(test_order, rename_pps, qs, qson=False):
     """Construct the test sequence DataFrame"""
     tests = get_tests()
     # columns argument ensures order of columns. Columns not listed (if any) will still appear after columns listed here
-    columns = ['test_name', 'test_time', 'video', 'preset_picture', 'abc', 'backlight', 'lux', 'mdd', 'qs', 'lan',
-               'wan', 'special_commands',] # 'ccf_pps']
+    columns = ['test_name', 'test_time', 'video', 'preset_picture', 'abc', 'backlight', 'lux']
+    if qs:
+        columns += ['qs']
+    columns += ['lan', 'wan', 'special_commands',] # 'ccf_pps']
     df = pd.DataFrame(columns=columns)
     for test in test_order:
         df = df.append(tests[test], ignore_index=True)
@@ -69,7 +71,7 @@ def create_test_seq_df(test_order, rename_pps, qson=False):
                 df.loc[idx, 'special_commands'] += ',peak_test:end'
         prev_peak = peak
         
-    if qson:
+    if qs and qson:
         df['qs'] = df['qs'].replace('off', 'on')
     df['preset_picture'] = df['preset_picture'].replace(rename_pps)
     df.index = range(1, len(df) + 1)
