@@ -115,7 +115,9 @@ and prepare the corresponding input files for the desktop application.
       --hdr=pps     specify hdr preset picture setting for testing
       --hdrabc      include abc on tests for hdr pps
       --brabc       include abc on tests for brightest pps
-      --qs=secs     tv has quickstart off by default, number of seconds to wake with quickstart off
+      --qs          tv has quickstart feature
+      --qsoff=secs  tv has quickstart off by default, number of seconds to wake with quickstart off
+
       
 ### main_sequence.exe Output Files
 
