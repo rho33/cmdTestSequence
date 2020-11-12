@@ -12,7 +12,8 @@ Options:
   --hdr=pps     specify hdr preset picture setting for testing
   --hdrabc      include abc on tests for hdr pps
   --brabc       include abc on tests for brightest pps
-  --qs=secs     tv has quickstart off by default, number of seconds to wake with quickstart off
+  --qs          tv has quickstart feature
+  --qsoff=secs  tv has quickstart off by default, number of seconds to wake with quickstart off
 """
 import sys
 from pathlib import Path
@@ -44,10 +45,10 @@ def get_test_order(docopt_args, ccf_pps_list):
             test_order += [f'hdr10_{lux_level}']
     
     test_order += [
-        'standby_passive',
-        'passive_waketime',
-        'standby_active_low',
-        'active_low_waketime',
+        # 'standby_passive',
+        # 'passive_waketime',
+        # 'standby_active_low',
+        # 'active_low_waketime',
         'standby_multicast',
         'multicast_waketime',
         'standby_echo',
@@ -108,8 +109,9 @@ def main():
         'hdr10_default': docopt_args['--hdr'],
         'abc_default': docopt_args['<default_pps>']
     }
-    qson = not docopt_args['--qs'] or float(docopt_args['--qs']) >= 10
-    test_seq_df = ts.create_test_seq_df(test_order, rename_pps, qson)
+    qs = docopt_args['--qs']
+    qson = qs and (not docopt_args['--qsoff'] or float(docopt_args['--qsoff']) >= 10)
+    test_seq_df = ts.create_test_seq_df(test_order, rename_pps, qs, qson)
     logger.info('\n' + test_seq_df.to_string())
     command_df = cs.create_command_df(test_seq_df)
     ts.save_sequences(test_seq_df, command_df, data_folder)
