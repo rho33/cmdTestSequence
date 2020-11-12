@@ -187,6 +187,91 @@ def apl_watts_scatter(df, test_names):
 #     plt.title('Compliance', fontsize=24)
 #     plt.close()
 #     return fig
+def all_dimming_lines(rsdf):
+    def get_points(pps, rsdf):
+        label_dict = {
+            'default': {
+                'default': 'ABC Off',
+                'default_100': '100 Lux',
+                'default_35': '35 Lux',
+                'default_12': '12 Lux',
+                'default_3': '3 Lux',
+                'default_low_backlight': 'Minimum Backlight',
+            },
+            'brightest': {
+                'brightest': 'ABC Off',
+                'brightest_100': '100 Lux',
+                'brightest_35': '35 Lux',
+                'brightest_12': '12 Lux',
+                'brightest_3': '3 Lux',
+                'brightest_low_backlight': 'Minimum Backlight',
+            },
+            'hdr10': {
+                'hdr10': 'ABC Off',
+                'hdr10_100': '100 Lux',
+                'hdr10_35': '35 Lux',
+                'hdr10_12': '12 Lux',
+                'hdr10_3': '3 Lux',
+                'hdr10_low_backlight': 'Minimum Backlight'
+            }
+        }
+        mask = rsdf['test_name'].apply(lambda name: name in label_dict[pps])
+        cdf = rsdf[mask].copy()
+        cdf['label'] = cdf['test_name'].apply(label_dict[pps].get)
+        points = dict(zip(cdf['label'], zip(cdf['nits'], cdf['watts'])))
+        return points
+    
+    fig, ax = plt.subplots(figsize=(10, 10))
+    format_ax(ax=ax, xlabel='Luminance (Nits)', ylabel='Power (W)')
+    
+    pps_colors = {'default': 'tab:blue', 'brightest': 'tab:orange', 'hdr10': 'tab:red'}
+    pps_colors = {pps: color for pps, color in pps_colors.items() if
+                  any(rsdf['test_name'].apply(lambda name: pps in name))}
+    pps_names = dict(zip(rsdf['test_name'], rsdf['preset_picture']))
+    handles = [mlines.Line2D([], [], label=f'{pps}: {pps_names[pps]}', color=color) for pps, color in
+               pps_colors.items()]
+    for pps, color in pps_colors.items():
+        points = get_points(pps, rsdf)
+        
+        ordered_points = OrderedDict(sorted(points.items(), key=lambda i: i[1][0]))
+        lums = [point[0] for label, point in points.items() if label != 'Measured']
+        pwrs = [point[1] for label, point in points.items() if label != 'Measured']
+        plt.plot(lums, pwrs, color=color)
+        markersize = 10
+        markers = {
+            'ABC Off': 'P',
+            '100 Lux': '^',
+            '35 Lux': '<',
+            '12 Lux': '>',
+            '3 Lux': 'v',
+            'Minimum Backlight': '_',
+        }
+        
+        for label, point in reversed(ordered_points.items()):
+            plt.plot(*point, marker=markers[label], color=color, markersize=markersize)
+        
+        abc_on_lums = [point[0] for label, point in points.items() if label != 'ABC Off']
+        abc_on_power = [point[1] for label, point in points.items() if label not in ['ABC Off', 'Minimum Backlight']]
+        
+        if abc_on_power:
+            abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
+            measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
+            plt.plot(*measured, marker='o', color='black', markersize=7)
+        else:
+            measured = points['ABC Off']
+            plt.plot(*measured, marker='o', color='black', markersize=7)
+        
+
+    
+    for label, marker in markers.items():
+        handle = mlines.Line2D([], [], linewidth=0, label=label, marker=marker, markersize=markersize, color='black')
+        handles.append(handle)
+    handle = mlines.Line2D([], [], linewidth=0, label=f'Poa_pps', marker='.', markersize=markersize, color='black')
+    handles.append(handle)
+    ax.legend(handles=handles)
+    plt.title('All On Mode Tests', fontsize=24)
+    plt.close()
+    return fig
 
 
 def dimming_line_scatter(pps, rsdf, area, limit_funcs):
@@ -280,7 +365,7 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
 
     plt.xlim(min_lum, max_lum)
     ax.legend(handles=handles)
-    title = {'default': 'Compliance Chart: Default PPS', 'brightest': 'Compliance Chart: Brightest PPS', 'hdr': 'Compliance Chart: HDR Default PPS'}.get(pps)
+    title = {'default': 'Compliance Chart: Default PPS', 'brightest': 'Compliance Chart: Brightest PPS', 'hdr10': 'Compliance Chart: HDR Default PPS'}.get(pps)
     plt.title(title, fontsize=24)
     plt.close()
     return fig
