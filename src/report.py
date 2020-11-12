@@ -120,6 +120,9 @@ def clean_rsdf(rsdf, cols=None):
         cdf['test_time'] = cdf['test_time'].astype(int)
     if 'video' in cdf.columns:
         cdf['video'] = cdf['video'].apply(lambda x: rename_video.get(x, x))
+    if 'lux' in cdf.columns:
+        # cdf['lux'] = cdf['lux'].astype(object)
+        cdf['lux'] = cdf['lux'].fillna(-1).astype(int).astype(str).replace('-1', '')
 
     cdf = cdf.dropna(axis=1, how='all')
     cdf = cdf.rename(columns=rename_cols)
@@ -383,8 +386,11 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                     'standby_passive': 'P<sub rise=2>STANDBY-PASSIVE</sub>',
                     'standby_google': 'P<sub rise=2>GOOGLE-STANDBY-ACTIVE-LOW</sub>',
                     'standby_echo': 'P<sub rise=2>AMAZON-STANDBY-ACTIVE-LOW</sub>',
+                    'standby_multicast': 'P<sub rise=2>MDNS-STANDBY-ACTIVE-LOW</sub>',
+                    'standby': 'P<sub rise=2>STANDBY-ACTIVE-LOW</sub>'
                 }
-                standby_summary.create_element('table', table_df.replace(rename_tests), grid_style=standby_df_style(standby_df))
+                table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
+                standby_summary.create_element('table', table_df, grid_style=standby_df_style(standby_df))
             add_compliance_summary_standby(report)
         with cat.new_section('On Mode Charts') as on_mode_charts:
             @skip_and_warn
@@ -400,6 +406,7 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                         'hdr dimming plot',
                         plots.dimming_line_scatter('hdr10', rsdf, area, limit_funcs)
                     )
+                on_mode_charts.create_element('all dimming lines plot', plots.all_dimming_lines(rsdf))
             add_on_mode_charts(report)
         with cat.new_section('Standby Chart') as standby_chart:
             @skip_and_warn
