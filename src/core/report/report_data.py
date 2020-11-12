@@ -13,7 +13,6 @@ from ..filefuncs import archive
 @except_none_log
 def get_test_specs_df(merged_df, paths, report_type):
     """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
-    # todo: get don't use test metadata for PCL testing
     if report_type == 'pcl':
         test_specs_df = pd.read_excel(paths['entry_forms'], sheet_name='Misc', header=None, index_col=0)
     else:
