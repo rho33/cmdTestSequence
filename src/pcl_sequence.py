@@ -109,12 +109,15 @@ def get_pps_df(path):
     return df
 
 
-def get_qson(path):
+
+    
+    
+def get_qsinfo(path):
     df = pd.read_excel(path, sheet_name='Misc', index_col=0)
     df.columns = ['entry']
     df['entry'] = df['entry'].astype(object)
     df = df.replace({'Yes': True, 'No': False})
-    
+
     def check_entry(idx):
         entry = df.loc[idx, 'entry']
         if pd.isnull(entry):
@@ -126,13 +129,18 @@ def get_qson(path):
         qsoff_def = check_entry('Does QS default to Off?')
         qs_secs = check_entry('If so, how many seconds does it take to wake to HDMI signal?')
         qs_10 = qs_secs >= 10
-        return qsoff_def and qs_10
+        qson = qsoff_def and qs_10
     else:
-        return False
+        qson = False
+        
+    return {
+        'qs': has_qs,
+        'qson': qson
+    }
     
     
 def main():
-    logger, docopt__args, data_folder = lf.start_script(__doc__, 'pcl-sequence.log')
+    logger, docopt_args, data_folder = lf.start_script(__doc__, 'pcl-sequence.log')
 
     entry_forms_template = Path(sys.path[0]).joinpath(r'config\entry-forms.xlsx')
     entry_forms = Path(data_folder).joinpath("entry-forms.xlsx")
@@ -161,7 +169,8 @@ def main():
     rename_pps = dict(zip(pps_df.pps_labels, pps_df.pps_name))
     logger.info(rename_pps)
     
-    test_seq_df = ts.create_test_seq_df(test_order, rename_pps, qson=get_qson(entry_forms))
+    qs_info = get_qsinfo(entry_forms)
+    test_seq_df = ts.create_test_seq_df(test_order, rename_pps, **qs_info)
     logger.info('\n' + test_seq_df.to_string())
     
     command_df = cs.create_command_df(test_seq_df)
