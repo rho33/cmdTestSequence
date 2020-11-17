@@ -11,17 +11,25 @@ RENAME_DICT = {
     'lux': 'Illuminance Level (Lux)',
     'mdd': 'Motion Detection Dimming (MDD)',
     'qs': 'QuickStart',
-    'sdr': 'IEC SDR',
-    'clasp_hdr': 'CLASP HDR',
-    'dots': 'Dots Pattern',
-    'lum_sdr': 'Luminance Profile',
+    'sdr': 'IEC_Broadcast_HD_5994p_SDR_HEVC_AAC.mp4',
+    'clasp_hdr': 'IEC_Broadcast_HD_5994p_HDR10_HEVC_AAC.mp4',
+    'dots': 'Dots.mp4',
+    'lum_sdr': 'Lum.mp4',
     'default_level': 'Default Level',
     'lowest_level': 'Lowest Level',
     'backlight': 'Backlight Setting',
     'oob': 'Default Out of Box Setting',
     'off': 'Off',
     'on': 'On',
+    'no': 'No',
+    'yes': 'Yes',
+    'ccf': 'CCF.mp4',
+    'lan': 'LAN',
+    'wan': 'WAN'
 }
+
+
+
 
 STAB_MAX_ITER = 6
 
@@ -31,7 +39,7 @@ def display_row_settings(row):
     non_setting_cols = ['special_commands', 'tag', 'test_name', 'test_time']
     display_row = row.drop(non_setting_cols).dropna().rename(RENAME_DICT).replace(RENAME_DICT)
     s = '-'*80
-    s += '\\nThe conditions for the current test should be:\\n\\n'
+    s += '\\nEnsure that the current test conditions are:\\n\\n'
     for setting, val in zip(display_row.index, display_row):
         if setting == 'Illuminance Level (Lux)':
             val = int(val)
@@ -78,7 +86,7 @@ def message_instructions(current_row, previous_row=None, extra=None, countdown=T
             elif col == 'backlight' and change_val == 'lowest_level':
                 message += '* Lower the backlight setting to the lowest possible level and record this level.\\n'
     if countdown:
-        message += f'* When ready begin the {test_clip} clip and press the OK button when the test clip content begins at the end of the countdown.\\n\\n'
+        message += f'* When ready begin the {test_clip} clip and press the OK button precisely when the test clip content begins at the end of the countdown. The accuracy of the test depends on pressing the OK button at the correct time.\\n\\n'
     return message
 
 
@@ -97,14 +105,14 @@ def waketime_message_start(row):
     message = message_heading(row)
     message += '-' * 80
     message += '\\nInstructions:\\n\\n'
-    message += '* Now that the standby test is complete we are going to measure wake time.\\n'
-    message += '* Press the OK button at the same time as you press the power button to turn on the television.\\n'
-    message += '* A new message will appear asking you to press another button as soon as the TV has become responsive to input.'
+    message += '* Now that the standby test is complete measure wake time.\\n'
+    message += '* Use the Remote Start feature to wake the TV; press OK as soon as you trigger waking by remote start.\\n'
+    message += '* A new message will appear asking you to press another button as soon as you see the HDMI video stream displayed.'
     return message
 
 
 # Scecond (finishing) test prompt for waketime tests
-WT_MESSAGE2 = "As soon as the TV becomes responsive to input press the OK button."
+WT_MESSAGE2 = "As soon as you see the HDMI video stream displayed press the OK button. This can happen very quickly."
 
 
 def lum_profile_message(row):
@@ -120,6 +128,7 @@ def stabilization_message(row):
     """Create stabilization test(s) prompt."""
     message = message_heading(row)
     extra = f'This test repeats until TV power output is stable or until {STAB_MAX_ITER} iterations is reached (minimum 2 iterations).\\n'
+    extra = f"This step stabilizes the TV by comparing the first 5 mins of consecutive runs of {RENAME_DICT['sdr']}. When the average power of a run is within 2% of the previous run or after 6 runs this step will end.\\n"
     message += message_instructions(row, extra=extra)
     message += display_row_settings(row)
     return message
@@ -131,17 +140,20 @@ def standby_message(row):
     message = message_heading(row)
     message += '-' * 80
     message += '\\nInstructions:\\n\\n'
-    message += f'* The next test will be a standby test.\\n'
+    # message += f'* The next test will be a standby test.\\n'
+    message += '* Remove the USB stick from the TV\\n'
     if 'echo' in row['test_name']:
         message += '* Connect the TV to the Amazon Echo\\n'
     if 'google' in row['test_name']:
         message += '* Connect the TV to the Google Home\\n'
     if 'qs' in row.index:
         message += f'* Ensure that QuckStart is set to {RENAME_DICT[row["qs"]]}'
-        if row['qs']=='off':
-            message+= ' (if applicable)'
+        # if row['qs']=='off':
+        #     message+= ' (if applicable)'
         message += '.\\n'
-    message += "* Power down the TV using the remote and press the OK button to begin test."
+    message += '* If not enabled configure the TV to wake via Remote Start.\\n'
+    message += '* Play dynamic video by HDMI.\\n'
+    message += "* Power down the TV using the remote and press the OK button as soon as the TV powers off."
     return message
 
 
