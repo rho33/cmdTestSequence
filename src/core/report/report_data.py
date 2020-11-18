@@ -86,7 +86,6 @@ def get_compliance_summary_df(on_mode_df, standby_df, report_type, hdr):
         
     return csdf.reset_index().drop('index', axis=1)
 
-
 @except_none_log
 def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
@@ -282,7 +281,7 @@ def get_spectral_coordinates_df(paths):
     df.index.name = ''
     return df.reset_index()
 
-
+@except_none_log
 def get_coverage(coordinates_df, colorspace):
     def point_on_triangle(pt1, pt2, pt3):
         """Random point on the triangle with vertices pt1, pt2 and pt3."""
@@ -329,7 +328,7 @@ def get_lum_df(paths):
     lum_df.index = map(lambda x: 100 * (1 - x / height), lum_df.index)
     return lum_df
 
-
+@except_none_log
 def get_ccf_df(merged_df, data_folder):
     ccf_df = pd.DataFrame(columns=['test_name', 'grey1', 'grey2', 'grey3', 'grey4', 'grey5'])
     manual_ccf_tests = [test_name for test_name in merged_df.test_name.unique() if 'manual_ccf' in test_name]
