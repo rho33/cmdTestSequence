@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from colour.models import BT2020_COLOURSPACE, BT709_COLOURSPACE
+from colour import XYZ_to_Lab, Lab_to_LCHab
 from . import merge
 from ..error_handling import permission_popup, except_none_log
 from ..filefuncs import archive
@@ -270,7 +271,10 @@ def get_merged_df(paths, data_folder):
 @except_none_log
 def get_spectral_df(paths):
     df = pd.read_csv(paths['spectral_profile']).iloc[39:]
+    
     df = df.astype(float).set_index(df.columns[0])
+    df = df[df.columns[:4]]
+    df.columns = [i.split('(')[0].strip() for i in df.columns]
     df.index.name = 'Wavelength (nm)'
     return df
 
@@ -279,7 +283,51 @@ def get_spectral_coordinates_df(paths):
     df = pd.read_csv(paths['spectral_profile']).iloc[18:20]
     df = df.set_index(df.columns[0]).astype(float)
     df.index.name = ''
+    df = df[['Red(0)', 'Green(0)', 'Blue(0)']]
+    df.columns = ['Red', 'Green', 'Blue']
     return df.reset_index()
+
+@except_none_log
+def get_washout_df(paths):
+    df = pd.read_csv(paths['spectral_profile'])
+    df = df.set_index(df.columns[0])
+    df.index.name = ''
+    df = df.iloc[12:15].T
+    df = df.reset_index()
+    df['color'] = df['index'].apply(lambda s: s.split('(')[0].strip())
+    df['angle'] = df['index'].apply(lambda s: s.split('(')[1].replace(')', '')).astype(int)
+
+    df['X'] = df['X'].astype(float)
+    df['Y'] = df['Y'].astype(float)
+    df['Z'] = df['Z'].astype(float)
+
+    df['normX'] = (df['X'] / df['X'][0]).apply(lambda x: min(x, 1))
+    df['normY'] = (df['Y'] / df['Y'][0]).apply(lambda x: min(x, 1))
+    df['normZ'] = (df['Z'] / df['Z'][0]).apply(lambda x: min(x, 1))
+    lab = df[['normX', 'normY', 'normZ']].apply(XYZ_to_Lab, axis=1)
+    df['lchab'] = lab.apply(Lab_to_LCHab)
+    df['l'] = df['lchab'].apply(lambda x: x[0])
+    df['l'] = df['l']
+    df['c'] = df['lchab'].apply(lambda x: x[1])
+    df['h'] = df['lchab'].apply(lambda x: x[2])
+    df = df[['color', 'angle', 'l', 'c', 'h']].set_index(['color', 'angle'])
+    df = df['h'].to_frame().reset_index()
+    df = df.pivot(index='angle', columns='color')
+    df.columns = [i[1] for i in df.columns]
+    for col in df.columns:
+        df[col] = (df[col] - df[col].values[0])
+    df = df.drop('White', axis=1)
+    return df
+
+@except_none_log
+def get_color_shift_df(paths):
+    pass
+
+@except_none_log
+def get_brightness_loss_df(paths):
+    pass
+    
+
 
 @except_none_log
 def get_coverage(coordinates_df, colorspace):
@@ -371,10 +419,12 @@ def get_report_data(paths, data_folder, docopt_args):
         data['scdf'] = get_spectral_coordinates_df(paths)
         data['bt2020_coverage'] = get_coverage(data['scdf'], BT2020_COLOURSPACE)
         data['bt709_coverage'] = get_coverage(data['scdf'], BT709_COLOURSPACE)
+        data['washout_df'] = get_washout_df(paths)
     else:
         data['persistence_dfs'] = None
         data['spectral_df'] = None
         data['scdf'] = None
+        data['washout_df'] = None
     data['waketimes'] = get_waketimes(data['merged_df'])
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
     data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
