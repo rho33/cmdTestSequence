@@ -120,7 +120,9 @@ def merge_test_data(test_seq_df, data_df):
     Merges test output data, test sequence data, and APL data
     into a single cleaned csv ready to be used in data report script.
     """
-    merged_df = remove_rows_rewind(data_df.copy())
+    ddf = data_df.copy()
+    ddf['Tag'] = ddf['Tag'].apply(lambda tag: tag[0] if 'camera ccf' in tag else tag)
+    merged_df = remove_rows_rewind(ddf)
     merged_df['time'] = merged_df['Timestamp'].apply(round_time)
     merged_df = merged_df.drop_duplicates(subset=['time'])
     merged_df = merged_df.reset_index()[['time', 'Power', 'Luminance', 'Tag']]
