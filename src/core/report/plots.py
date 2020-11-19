@@ -432,6 +432,16 @@ def spectral_power_distribution(spectral_df):
     return fig
 
 
+def color_washout(washout_df):
+    washout_df.plot(color=washout_df.columns, figsize=(10, 7))
+    format_ax(xlabel='Angle Off Axis (degrees)', ylabel='Normalized Chroma')
+    plt.plot((0, 70), (.8, .8), color='black', linestyle='dashed')
+    plt.title('Color Washout', fontsize=24)
+    fig = plt.gcf()
+    plt.close()
+    return fig
+
+
 def chromaticity(spectral_df):
     sd_list = [SpectralDistribution(spectral_df[color], name=color) for color in spectral_df.columns]
     callable = partial(plot_sds_in_chromaticity_diagram_CIE1931, sd_list)
