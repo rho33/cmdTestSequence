@@ -450,7 +450,7 @@ def add_overlay(report, rsdf, merged_df, test_names, **kwargs):
     report.create_element('plot', plots.overlay(merged_df, test_names))
 
 @skip_and_warn
-def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, **kwargs):
+def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, washout_df, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
         with supp.new_section('Stabilization') as stab:
             stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
@@ -476,6 +476,11 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, re
                     text = f" BT.2020 Colorspace Coverage: {100*kwargs['bt2020_coverage']:.0f}%<br /> BT.709 Colorspace Coverage: {100*kwargs['bt709_coverage']:.0f}%"
                     spd.create_element('coverage', text)
             add_spectral_power_distribution(report)
+            @skip_and_warn
+            def add_viewing_angle(report):
+                with supp.new_section('Viewing Angle Tests') as vat:
+                    vat.create_element('color washout plot', plots.color_washout(washout_df))
+            add_viewing_angle(report)
     return report
 
 @skip_and_warn
