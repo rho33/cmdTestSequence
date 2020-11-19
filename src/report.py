@@ -450,7 +450,8 @@ def add_overlay(report, rsdf, merged_df, test_names, **kwargs):
     report.create_element('plot', plots.overlay(merged_df, test_names))
 
 @skip_and_warn
-def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, washout_df, **kwargs):
+def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, washout_df, color_shift_df,
+                     **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
         with supp.new_section('Stabilization') as stab:
             stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
@@ -480,6 +481,7 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, re
             def add_viewing_angle(report):
                 with supp.new_section('Viewing Angle Tests') as vat:
                     vat.create_element('color washout plot', plots.color_washout(washout_df))
+                    vat.create_element('color shift plot', plots.color_shift(color_shift_df))
             add_viewing_angle(report)
     return report
 

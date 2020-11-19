@@ -442,6 +442,23 @@ def color_washout(washout_df):
     return fig
 
 
+def color_shift(df):
+    df.plot(color=df.columns, figsize=(10, 7))
+    format_ax(xlabel='Angle Off Axis (Degrees)', ylabel='Hue Shift (Degrees of Hue)')
+    plt.plot((0, 70), (-3, -3), color='black', linestyle='dashed')
+    plt.plot((0, 70), (3, 3), color='black', linestyle='dashed')
+    ax = plt.gca()
+    min_max = {
+        'ymin': df.min().min(),
+        'ymax': df.max().max()
+    }
+    key = max(min_max, key=lambda x: abs(min_max[x]))
+    ax.set_ylim(bottom=abs(min_max[key]) * -1, top=abs(min_max[key]))
+    plt.title('Color Shift', fontsize=24)
+    fig = plt.gcf()
+    plt.close()
+    return fig
+
 def chromaticity(spectral_df):
     sd_list = [SpectralDistribution(spectral_df[color], name=color) for color in spectral_df.columns]
     callable = partial(plot_sds_in_chromaticity_diagram_CIE1931, sd_list)
