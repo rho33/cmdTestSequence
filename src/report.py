@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from reportlab.lib.units import inch
+from reportlab.platypus import PageBreak
 import core.report.reportlab_sections as rls
 import core.report.plots as plots
 import core.report.report_data as rd
@@ -450,8 +451,8 @@ def add_overlay(report, rsdf, merged_df, test_names, **kwargs):
     report.create_element('plot', plots.overlay(merged_df, test_names))
 
 @skip_and_warn
-def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, washout_df, color_shift_df,
-                     **kwargs):
+def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, washout_df, washout_crossovers,
+                     color_shift_df, color_shift_crossovers, brightness_loss_df, brightness_loss_crossover, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
         with supp.new_section('Stabilization') as stab:
             stab_tests = [test for test in rsdf.test_name.unique() if 'stabilization' in test]
@@ -481,7 +482,29 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, re
             def add_viewing_angle(report):
                 with supp.new_section('Viewing Angle Tests') as vat:
                     vat.create_element('color washout plot', plots.color_washout(washout_df))
+                    text = '80% Crossovers:<br/><br/>'
+                    for color, crossover in washout_crossovers.items():
+                        if crossover is not None:
+                            text += f'{color}: {round(crossover, 1)}<br/>'
+                    vat.create_element('washout crossovers', text)
+                    
                     vat.create_element('color shift plot', plots.color_shift(color_shift_df))
+                    if any(color_shift_crossovers['positive'].values()):
+                        text = '3° Crossovers: <br/><br/>'
+                        for color, crossover in color_shift_crossovers['positive'].items():
+                            if crossover is not None:
+                                text += f'{color}: {round(crossover, 1)}<br/>'
+                    if any(color_shift_crossovers['negative'].values()):
+                        text = '-3° Crossovers: <br/><br/>'
+                        for color, crossover in color_shift_crossovers['negative'].items():
+                            if crossover is not None:
+                                text += f'{color}: {round(crossover, 1)}<br/>'
+                    if text:
+                        vat.create_element('color shift crossovers', text)
+                    vat.elements['color shift page break'] = [PageBreak()]
+                    vat.create_element('brightness loss plot', plots.brightness_loss(brightness_loss_df))
+                    text = f'75% Crossover: {round(brightness_loss_crossover, 1)}'
+                    vat.create_element('brightness loss crossover', text)
             add_viewing_angle(report)
     return report
 
@@ -552,7 +575,7 @@ def make_report(report_data):
     report = add_test_results_plots(report, **report_data)
     
     filename = {'estar': 'ENERGYSTAR-report.pdf',
-                   'alternative': 'alternative-report.pdf',
+                   'alternative': 'va-report.pdf',
                    'pcl': 'pcl-report.pdf'}.get(report_data['report_type'])
     build_report(report, filename, report_data['data_folder'], report_data['model'], report_data['test_date'])
     
