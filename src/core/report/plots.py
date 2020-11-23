@@ -459,6 +459,17 @@ def color_shift(df):
     plt.close()
     return fig
 
+
+def brightness_loss(df):
+    df.plot(color='black', figsize=(10, 7), legend=False)
+    format_ax(xlabel='Angle Off Axis (Degrees)', ylabel='Normalized Lightness')
+    plt.plot((0, 70), (.75, .75), color='black', linestyle='dashed')
+    plt.title('Brightness Loss', fontsize=24)
+    fig = plt.gcf()
+    plt.close()
+    return fig
+
+
 def chromaticity(spectral_df):
     sd_list = [SpectralDistribution(spectral_df[color], name=color) for color in spectral_df.columns]
     callable = partial(plot_sds_in_chromaticity_diagram_CIE1931, sd_list)
