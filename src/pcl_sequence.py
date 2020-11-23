@@ -29,6 +29,8 @@ def get_test_order(pps_df):
         # 'brightest_10%sdr',
         # 'hdr10'
     ]
+    if 'hdr10' in pps_df.index and pd.notna(pps_df.loc['hdr10', 'pps_name']):
+        test_order += ['hdr10']
     for lux_level in [None, 'low_backlight', 100, 35, 12, 3]:
         for base_test, row in pps_df.iterrows():
             test_name = None
