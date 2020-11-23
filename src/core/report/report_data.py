@@ -210,7 +210,7 @@ def get_persistence_dfs(paths):
 def get_report_type(docopt_args, data_folder):
     if docopt_args['-e'] or 'ENERGYSTAR' in data_folder.stem:
         return 'estar'
-    elif docopt_args['-v'] or 'Alternative' in data_folder.stem:
+    elif docopt_args['-v'] or 'VA' in data_folder.stem:
         return 'alternative'
     elif docopt_args['-p'] or 'PCL' in data_folder.stem:
         return 'pcl'
@@ -293,7 +293,9 @@ def get_washout_df(paths):
     df = df.set_index(df.columns[0])
     df.index.name = ''
     df = df.iloc[12:15].T
+
     df = df.reset_index()
+
     df['color'] = df['index'].apply(lambda s: s.split('(')[0].strip())
     df['angle'] = df['index'].apply(lambda s: s.split('(')[1].replace(')', '')).astype(int)
 
@@ -301,21 +303,21 @@ def get_washout_df(paths):
     df['Y'] = df['Y'].astype(float)
     df['Z'] = df['Z'].astype(float)
 
-    df['normX'] = (df['X'] / df['X'][0]).apply(lambda x: min(x, 1))
-    df['normY'] = (df['Y'] / df['Y'][0]).apply(lambda x: min(x, 1))
-    df['normZ'] = (df['Z'] / df['Z'][0]).apply(lambda x: min(x, 1))
+    df['normX'] = (df['X']/df['X'][0]).apply(lambda x: min(x, 1))
+    df['normY'] = (df['Y']/df['Y'][0]).apply(lambda x: min(x, 1))
+    df['normZ'] = (df['Z']/df['Z'][0]).apply(lambda x: min(x, 1))
     lab = df[['normX', 'normY', 'normZ']].apply(XYZ_to_Lab, axis=1)
     df['lchab'] = lab.apply(Lab_to_LCHab)
     df['l'] = df['lchab'].apply(lambda x: x[0])
-    df['l'] = df['l']
+
     df['c'] = df['lchab'].apply(lambda x: x[1])
     df['h'] = df['lchab'].apply(lambda x: x[2])
     df = df[['color', 'angle', 'l', 'c', 'h']].set_index(['color', 'angle'])
-    df = df['h'].to_frame().reset_index()
+    df = df['c'].to_frame().reset_index()
     df = df.pivot(index='angle', columns='color')
     df.columns = [i[1] for i in df.columns]
     for col in df.columns:
-        df[col] = (df[col] - df[col].values[0])
+        df[col] = (df[col]/df[col].values[0]).apply(lambda x: min(x, 1))
     df = df.drop('White', axis=1)
     return df
 
@@ -356,9 +358,60 @@ def get_color_shift_df(paths):
 
 @except_none_log
 def get_brightness_loss_df(paths):
-    pass
-    
+    df = pd.read_csv(paths['spectral_profile'])
+    df = df.set_index(df.columns[0])
+    df.index.name = ''
+    df = df.iloc[12:15].T
+    df = df.reset_index()
+    df['color'] = df['index'].apply(lambda s: s.split('(')[0].strip())
+    df['angle'] = df['index'].apply(lambda s: s.split('(')[1].replace(')', '')).astype(int)
+    df['Y'] = df['Y'].astype(float)
+    df['normY'] = (df['Y'] / df['Y'][0]).apply(lambda x: min(x, 1))
+    df = df[['color', 'angle', 'normY']]
+    df = df.pivot(index='angle', columns='color')
+    df.columns = [i[1] for i in df.columns]
+    return df[['White']]
 
+
+def get_crossover_x(series, crossover_y):
+    mask = (series > crossover_y) & (crossover_y > series.shift(-1))
+    masked_series = series[mask]
+    if len(masked_series) > 0:
+        x1 = masked_series.index[0]
+    else:
+        return None
+    x2 = series.index[list(series.index).index(x1) + 1]
+    y1 = series.loc[x1]
+    y2 = series.loc[x2]
+    slope = (y2 - y1) / (x2 - x1)
+    crossover_x = x1 + (crossover_y - y1) / slope
+    return crossover_x
+
+@except_none_log
+def get_washout_crossovers(washout_df):
+    crossovers = {}
+    for col in washout_df.columns:
+        crossovers[col] = get_crossover_x(series=washout_df[col], crossover_y=.8)
+    return crossovers
+
+@except_none_log
+def get_color_shift_crossovers(color_shift_df):
+    pos_crossovers = {}
+    for col in color_shift_df.columns:
+        pos_crossovers[col] = get_crossover_x(series=color_shift_df[col], crossover_y=3)
+    neg_crossovers = {}
+    for col in color_shift_df.columns:
+        neg_crossovers[col] = get_crossover_x(series=color_shift_df[col], crossover_y=-3)
+    crossovers = {
+        'positive': pos_crossovers,
+        'negative': neg_crossovers
+    }
+    return crossovers
+
+@except_none_log
+def get_brightness_loss_crossover(brightness_loss_df):
+    return get_crossover_x(series=brightness_loss_df['White'], crossover_y=.75)
+    
 @except_none_log
 def get_coverage(coordinates_df, colorspace):
     def point_on_triangle(pt1, pt2, pt3):
@@ -396,7 +449,6 @@ def get_coverage(coordinates_df, colorspace):
         inside_total += isInside(x1, y1, x2, y2, x3, y3, x, y)
         total += 1
     return inside_total / total
-
 
 @except_none_log
 def get_lum_df(paths):
@@ -450,13 +502,21 @@ def get_report_data(paths, data_folder, docopt_args):
         data['bt2020_coverage'] = get_coverage(data['scdf'], BT2020_COLOURSPACE)
         data['bt709_coverage'] = get_coverage(data['scdf'], BT709_COLOURSPACE)
         data['washout_df'] = get_washout_df(paths)
+        data['washout_crossovers'] = get_washout_crossovers(data['washout_df'])
         data['color_shift_df'] = get_color_shift_df(paths)
+        data['color_shift_crossovers'] = get_color_shift_crossovers(data['color_shift_df'])
+        data['brightness_loss_df'] = get_brightness_loss_df(paths)
+        data['brightness_loss_crossover'] = get_brightness_loss_crossover(data['brightness_loss_df'])
     else:
         data['persistence_dfs'] = None
         data['spectral_df'] = None
         data['scdf'] = None
         data['washout_df'] = None
+        data['washout_crossovers'] = None
         data['color_shift_df'] = None
+        data['color_shift_crossovers'] = None
+        data['brightness_loss_df'] = None
+        data['brightness_loss_crossover'] = None
     data['waketimes'] = get_waketimes(data['merged_df'])
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
     data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
