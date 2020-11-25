@@ -1,4 +1,4 @@
-from functools import partial
+from functools import partial, wraps
 import PySimpleGUI as sg
 import warnings
 import logging
@@ -12,6 +12,7 @@ def error_popup(msg, callback, exception=Exception):
 
 
 def permission_popup(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -23,6 +24,7 @@ def permission_popup(func):
 
 def skip_and_warn(func):
     '''skips report section if exception is thrown and notifies user'''
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -36,6 +38,7 @@ def skip_and_warn(func):
 
 
 def except_none_log(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
