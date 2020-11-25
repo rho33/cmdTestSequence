@@ -9,7 +9,6 @@ Arguments:
 Options:
   -h --help
 """
-import sys
 import shutil
 from pathlib import Path
 import pandas as pd
@@ -24,15 +23,15 @@ def main():
     paths = ff.get_paths(data_folder)
     test_seq_df = pd.read_csv(paths['test_seq'])
     tags = [int(i) for i in docopt_args['<tags>']]
-    mask = (test_seq_df['test_name'].isin(['screen_config', 'stabilization'])) | (test_seq_df['tag'].isin(tags))
+    mask = (test_seq_df['test_name'].isin(['screen_config'])) | (test_seq_df['tag'].isin(tags))
     
-    if paths['ccf'] is not None:
-        src, dst = str(paths['ccf']),  str(Path(ff.APPDATA_DIR).joinpath('ccf-output.csv'))
-        shutil.copy(src, dst)
-        src, dst = str(paths['ccf_input']), str(Path(ff.APPDATA_DIR).joinpath('ccf-input.csv'))
-        shutil.copy(src, dst)
-    else:
-        mask = mask | (test_seq_df['test_name'].apply(lambda name: 'ccf' in name))
+    # if  and paths['ccf'] is not None:
+    #     src, dst = str(paths['ccf']),  str(Path(ff.APPDATA_DIR).joinpath('ccf-output.csv'))
+    #     shutil.copy(src, dst)
+    #     src, dst = str(paths['ccf_input']), str(Path(ff.APPDATA_DIR).joinpath('ccf-input.csv'))
+    #     shutil.copy(src, dst)
+    # else:
+    mask = mask | (test_seq_df['test_name'].apply(lambda name: 'ccf' in name))
     
     partial_test_seq_df = test_seq_df[mask].reset_index().drop('index', axis=1)
     command_df = cs.create_command_df(partial_test_seq_df)
