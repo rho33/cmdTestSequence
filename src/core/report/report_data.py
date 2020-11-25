@@ -1,5 +1,6 @@
 import sys
 import random
+from collections import defaultdict
 from pathlib import Path
 from functools import partial
 import warnings
@@ -14,7 +15,7 @@ from ..filefuncs import archive
 @except_none_log
 def get_test_specs_df(merged_df, paths, report_type):
     """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
-    if report_type == 'pcl':
+    if report_type == 'pcl' and paths['entry_forms'] is not None:
         test_specs_df = pd.read_excel(paths['entry_forms'], sheet_name='Misc', header=None, index_col=0)
     else:
         test_specs_df = pd.read_csv(paths['test_metadata'], header=None, index_col=0)
@@ -145,37 +146,10 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
     return on_mode_df
 
 @except_none_log
-def get_standby_df(rsdf, test_specs_df):
+def get_standby_df(rsdf):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of standby testing."""
     
     standby_df = rsdf[rsdf['test_name'].apply(lambda x: 'standby' in x)].copy()
-    sal_row = {
-        'test_name': 'standby',
-        'lan': 'yes',
-        'wan': 'no',}
-    try:
-        sal_row['waketime'] = float(test_specs_df.loc['Standby Active Low Waketime (seconds)', 0])
-    except:
-        pass
-    try:
-        sal_row['watts'] = float(test_specs_df.loc['Standby Active Low Power (W)', 0])
-    except:
-        pass
-    standby_df = standby_df.append(sal_row, ignore_index=True)
-    sp_row = {
-        'test_name': 'standby_passive',
-        'lan': 'no',
-        'wan': 'no',}
-    try:
-        sp_row['waketime'] = float(test_specs_df.loc['Standby Passive Waketime (seconds)', 0])
-    except:
-        pass
-    try:
-        sp_row['watts'] = float(test_specs_df.loc['Standby Passive Power (W)', 0])
-    except:
-        pass
-    standby_df = standby_df.append(sp_row, ignore_index=True)
-    
     
     limits = {
         'standby': 2,
@@ -208,11 +182,17 @@ def get_persistence_dfs(paths):
 
 @except_none_log
 def get_report_type(docopt_args, data_folder):
-    if docopt_args['-e'] or 'ENERGYSTAR' in data_folder.stem:
+    if docopt_args['-e']:
         return 'estar'
-    elif docopt_args['-v'] or 'VA' in data_folder.stem:
+    elif docopt_args['-v']:
         return 'alternative'
-    elif docopt_args['-p'] or 'PCL' in data_folder.stem:
+    elif docopt_args['-p']:
+        return 'pcl'
+    elif 'ENERGYSTAR' in data_folder.stem:
+        return 'estar'
+    elif 'VA' in data_folder.stem:
+        return 'alternative'
+    elif 'PCL' in data_folder.stem:
         return 'pcl'
     else:
         warnings.warn('Report type could not be identified. Attempting ENERGYSTAR report...')
@@ -244,6 +224,31 @@ def get_limit_funcs(report_type):
 
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
     return limit_funcs
+
+@except_none_log
+@permission_popup
+def get_status_df(test_seq_df, merged_df, paths, data_folder):
+    cols = ['tag', 'test_name', 'test_time']
+    status_df = test_seq_df.copy()[cols]
+    status_df = status_df[status_df['test_name'] != 'screen_config']
+    if merged_df is not None and isinstance(merged_df, pd.DataFrame) and not merged_df.empty:
+        def get_status(test_name):
+        
+            default_check = lambda: test_name in merged_df['test_name'].unique()
+            status_checker = defaultdict(default_check)
+            status_checker.update({
+                'lum_profile': bool(paths.get('lum_profile')),
+                'camera_ccf_default': bool(paths.get('ccf')),
+                'stabilization': 'stabilization1' in merged_df['test_name'].unique(),
+                'active_low_waketime': pd.notna(
+                    merged_df[merged_df['test_name'] == 'standby_active_low'].iloc[0]['waketime'])
+            })
+            return {True: 'Run', False: 'Not Run'}.get(status_checker[test_name])
+        status_df['status'] = status_df['test_name'].apply(get_status)
+    else:
+        status_df['status'] = 'Not Run'
+    status_df.to_csv(data_folder.joinpath('test-status.csv'), index=False)
+    return status_df
 
 @except_none_log
 @permission_popup
@@ -524,7 +529,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['area'] = get_screen_area(data['test_specs_df'])
     data['model'] = get_model(data['test_specs_df'])
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
-    data['standby_df'] = get_standby_df(data['rsdf'], data['test_specs_df'])
+    data['standby_df'] = get_standby_df(data['rsdf'])
     data['lum_df'] = get_lum_df(paths)
     data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
     
