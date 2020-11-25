@@ -6,9 +6,9 @@ Arguments:
 
 Options:
   -h --help
-  -e
-  -v
-  -p
+  -e force ENERGYSTAR report type
+  -v force VA report type
+  -p force PCL report type
 """
 import sys
 from pathlib import Path
@@ -284,26 +284,27 @@ def get_limit_func_strings(limit_funcs, hdr):
 @skip_and_warn
 def add_persistence_summary(report, persistence_dfs, **kwargs):
     """Add section displaying persistence tables found in entry forms (for PCL testing only)"""
-    with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
-        
-        with persistence_summary.new_section('SDR Persistence') as sdr_persistence:
-            sdr_persistence.create_element('sdr_persistence', persistence_dfs['sdr'], save=False)
-        
-        hdr10_df = persistence_dfs.get('hdr_10')
-        if hdr10_df is not None and not hdr10_df.empty:
-            with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
-                hdr_persistence.create_element('hdr10_persistence', hdr10_df, save=False)
-        
-        hlg_df = persistence_dfs.get('hlg')
-        if hlg_df is not None and not hlg_df.empty:
-            with persistence_summary.new_section('HLG Persistence') as hlg_persistence:
-                hlg_persistence.create_element('hlg_persistence', hlg_df, save=False)
-        
-        dv_df = persistence_dfs.get('dolby_vision')
-        if dv_df is not None and not dv_df.empty:
-            with persistence_summary.new_section('Dolby Vision Persistence') as dv_persistence:
-                dv_persistence.create_element('dv_persistence', dv_df, save=False)
-                
+    if persistence_dfs is not None:
+        with report.new_section('Persistence Summary', page_break=False) as persistence_summary:
+            
+            with persistence_summary.new_section('SDR Persistence') as sdr_persistence:
+                sdr_persistence.create_element('sdr_persistence', persistence_dfs['sdr'], save=False)
+            
+            hdr10_df = persistence_dfs.get('hdr_10')
+            if hdr10_df is not None and not hdr10_df.empty:
+                with persistence_summary.new_section('HDR10 Persistence') as hdr_persistence:
+                    hdr_persistence.create_element('hdr10_persistence', hdr10_df, save=False)
+            
+            hlg_df = persistence_dfs.get('hlg')
+            if hlg_df is not None and not hlg_df.empty:
+                with persistence_summary.new_section('HLG Persistence') as hlg_persistence:
+                    hlg_persistence.create_element('hlg_persistence', hlg_df, save=False)
+            
+            dv_df = persistence_dfs.get('dolby_vision')
+            if dv_df is not None and not dv_df.empty:
+                with persistence_summary.new_section('Dolby Vision Persistence') as dv_persistence:
+                    dv_persistence.create_element('dv_persistence', dv_df, save=False)
+                    
     return report
 
 @skip_and_warn
@@ -388,7 +389,9 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                     'standby_google': 'P<sub rise=2>GOOGLE-STANDBY-ACTIVE-LOW</sub>',
                     'standby_echo': 'P<sub rise=2>AMAZON-STANDBY-ACTIVE-LOW</sub>',
                     'standby_multicast': 'P<sub rise=2>MDNS-STANDBY-ACTIVE-LOW</sub>',
-                    'standby': 'P<sub rise=2>STANDBY-ACTIVE-LOW</sub>'
+                    'standby': 'P<sub rise=2>STANDBY-ACTIVE-LOW</sub>',
+                    'standby_active_low': 'P<sub rise=2>STANDBY-ACTIVE-LOW</sub>',
+                    
                 }
                 table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
                 standby_summary.create_element('table', table_df, grid_style=standby_df_style(standby_df))
