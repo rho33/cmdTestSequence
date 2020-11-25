@@ -19,7 +19,9 @@ import sys
 from pathlib import Path
 import core.sequence.sequence as ts
 import core.sequence.command_sequence as cs
+import core.report.report_data as rd
 import core.logfuncs as lf
+
 
 
 def get_test_order(docopt_args, ccf_pps_list):
@@ -47,14 +49,14 @@ def get_test_order(docopt_args, ccf_pps_list):
     test_order += [
         # 'standby_passive',
         # 'passive_waketime',
-        # 'standby_active_low',
-        # 'active_low_waketime',
-        'standby_multicast',
-        'multicast_waketime',
-        'standby_echo',
-        'echo_waketime',
-        'standby_google',
-        'google_waketime',
+        'standby_active_low',
+        'active_low_waketime',
+        # 'standby_multicast',
+        # 'multicast_waketime',
+        # 'standby_echo',
+        # 'echo_waketime',
+        # 'standby_google',
+        # 'google_waketime',
     ]
     return test_order
 
@@ -115,6 +117,7 @@ def main():
     logger.info('\n' + test_seq_df.to_string())
     command_df = cs.create_command_df(test_seq_df)
     ts.save_sequences(test_seq_df, command_df, data_folder)
+    rd.get_status_df(test_seq_df, None, {}, data_folder)
 
 
 if __name__ == '__main__':
