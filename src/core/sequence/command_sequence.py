@@ -119,7 +119,9 @@ def lum_profile_message(row):
     """Create lum profile test prompt."""
     message = message_heading(row)
     extra = '* Next we will capture the luminance profile of the TV.\\n'
-    message += message_instructions(row, extra=extra)
+    message += message_instructions(row, extra=extra, countdown=False)
+    test_clip = RENAME_DICT.get(row['video'], row['video'])
+    message += f'* When ready begin the {test_clip} clip and press the OK button precisely when the test clip content begins (when the screen is completely white and there is no overlay). The accuracy of the test depends on pressing the OK button at the correct time.\\n\\n'
     message += display_row_settings(row)
     return message
 
