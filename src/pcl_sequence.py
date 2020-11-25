@@ -35,7 +35,7 @@ def get_test_order(pps_df):
         for base_test, row in pps_df.iterrows():
             test_name = None
             if lux_level is None:
-                if base_test not in ['default', 'brightest', 'hdr'] and not row['abc']:
+                if base_test not in ['default', 'brightest', 'hdr10'] and not row['abc']:
                     test_name = base_test
             elif lux_level == 'low_backlight':
                 if not row['abc']:
@@ -46,16 +46,16 @@ def get_test_order(pps_df):
                 test_order.append(test_name)
     
     test_order += [
-        'standby_passive',
-        'passive_waketime',
+        # 'standby_passive',
+        # 'passive_waketime',
         'standby_active_low',
         'active_low_waketime',
-        'standby_multicast',
-        'multicast_waketime',
-        'standby_echo',
-        'echo_waketime',
-        'standby_google',
-        'google_waketime',
+        # 'standby_multicast',
+        # 'multicast_waketime',
+        # 'standby_echo',
+        # 'echo_waketime',
+        # 'standby_google',
+        # 'google_waketime',
     ]
     return test_order
 
