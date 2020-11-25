@@ -530,6 +530,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['model'] = get_model(data['test_specs_df'])
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
     data['standby_df'] = get_standby_df(data['rsdf'])
+    data['status_df'] = get_status_df(data['test_seq_df'], data['merged_df'], data['paths'], data['data_folder'])
     data['lum_df'] = get_lum_df(paths)
     data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
     
