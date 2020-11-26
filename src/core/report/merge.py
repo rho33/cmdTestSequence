@@ -48,9 +48,11 @@ def add_stab_tests(test_seq_df, df):
         new_row['tag'] = tag
         new_row['test_name'] = f'stabilization{i+1}'
         df_list.append(new_row)
-
-    stab_df = pd.concat(df_list)
-    return pd.concat([test_seq_df, stab_df])
+    if df_list:
+        stab_df = pd.concat(df_list)
+        return pd.concat([test_seq_df, stab_df])
+    else:
+        return test_seq_df
 
 
 def cut_off_intros(df):
