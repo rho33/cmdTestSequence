@@ -252,8 +252,13 @@ def get_status_df(test_seq_df, merged_df, paths, data_folder):
 
 @except_none_log
 @permission_popup
-def get_merged_df(paths, data_folder):
-    test_seq_df = pd.read_csv(paths['test_seq'])
+def get_test_seq_df(paths):
+    return pd.read_csv(paths['test_seq'])
+    
+@except_none_log
+@permission_popup
+def get_merged_df(test_seq_df, paths, data_folder):
+    
     data_df = pd.read_csv(paths['test_data'], parse_dates=['Timestamp'])
     merged_df = merge.merge_test_data(test_seq_df, data_df)
     merged_df['source'] = Path(paths['test_data']).name
@@ -282,6 +287,37 @@ def get_spectral_df(paths):
     df.columns = [i.split('(')[0].strip() for i in df.columns]
     df.index.name = 'Wavelength (nm)'
     return df
+
+@except_none_log
+@permission_popup
+def get_contrast_ratio(paths):
+    contrast_df = pd.read_csv(paths['contrast'])
+    white = contrast_df['white'].iloc[0]
+    black = contrast_df['black'].iloc[0]
+    return white/black
+
+@except_none_log
+@permission_popup
+def get_spectral_summary_df(data):
+    ss_data = {
+        'BT2020 Coverage': data['bt2020_coverage'],
+        'BT709 Coverage': data['bt709_coverage'],
+        'Contrast Ratio': data['contrast_ratio'],
+        '75% Brightness Loss Angle': data['brightness_loss_crossover'],
+        '80% Color Washout Angle Red': data['washout_crossovers']['Red'],
+        '80% Color Washout Angle Green': data['washout_crossovers']['Green'],
+        '80% Color Washout Angle Blue': data['washout_crossovers']['Blue'],
+        '3 degree Color Shift Angle Red': data['color_shift_crossovers']['positive']['Red'],
+        '3 degree Color Shift Angle Green': data['color_shift_crossovers']['positive']['Green'],
+        '3 degree Color Shift Angle Blue': data['color_shift_crossovers']['positive']['Blue'],
+        '-3 degree Color Shift Angle Red': data['color_shift_crossovers']['negative']['Red'],
+        '-3 degree Color Shift Angle Green': data['color_shift_crossovers']['negative']['Green'],
+        '-3 degree Color Shift Angle Blue': data['color_shift_crossovers']['negative']['Blue'],
+    }
+    spectral_summary_df = pd.DataFrame(ss_data, index=[0]).T
+    save_path = data['data_folder'].joinpath('spectral_summary.csv')
+    spectral_summary_df.to_csv(save_path, header=False)
+    return spectral_summary_df
 
 @except_none_log
 def get_spectral_coordinates_df(paths):
@@ -497,7 +533,8 @@ def get_report_data(paths, data_folder, docopt_args):
     data = {}
     data['data_folder'] = data_folder
     data['report_type'] = get_report_type(docopt_args, data_folder)
-    data['merged_df'] = get_merged_df(paths, data_folder)
+    data['test_seq_df'] = get_test_seq_df(paths)
+    data['merged_df'] = get_merged_df(data['test_seq_df'], paths, data_folder)
     data['hdr'] = get_hdr(data['merged_df'])
     data['limit_funcs'] = get_limit_funcs(data['report_type'])
     if data['report_type']=='pcl':
@@ -512,6 +549,9 @@ def get_report_data(paths, data_folder, docopt_args):
         data['color_shift_crossovers'] = get_color_shift_crossovers(data['color_shift_df'])
         data['brightness_loss_df'] = get_brightness_loss_df(paths)
         data['brightness_loss_crossover'] = get_brightness_loss_crossover(data['brightness_loss_df'])
+        data['contrast_ratio'] = get_contrast_ratio(paths)
+        data['spectral_summary_df'] = get_spectral_summary_df(data)
+
     else:
         data['persistence_dfs'] = None
         data['spectral_df'] = None
@@ -530,7 +570,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['model'] = get_model(data['test_specs_df'])
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
     data['standby_df'] = get_standby_df(data['rsdf'])
-    data['status_df'] = get_status_df(data['test_seq_df'], data['merged_df'], data['paths'], data['data_folder'])
+    data['status_df'] = get_status_df(data['test_seq_df'], data['merged_df'], paths, data['data_folder'])
     data['lum_df'] = get_lum_df(paths)
     data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
     
