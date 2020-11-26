@@ -47,9 +47,10 @@ PATTERNS = {
     'old_merged': '*merged*.csv',
     'ccf': 'ccf-output.csv',
     'results_summary': 'results-summary.csv',
-    'partial_test_seq': 'partial-ts.csv',
-    'partial_cmd_seq': 'partial-cs.csv',
-    'ccf_input': '*ccf-input*.csv'
+    'partial_test_seq': 'Partial/*partial-test-sequence*.csv',
+    'partial_cmd_seq': 'Partial/*partial-command-sequence*.csv',
+    'ccf_input': '*ccf-input*.csv',
+    'contrast': '*contrast*.csv'
 }
 
 
