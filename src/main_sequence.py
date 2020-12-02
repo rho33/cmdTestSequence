@@ -23,7 +23,6 @@ import core.report.report_data as rd
 import core.logfuncs as lf
 
 
-
 def get_test_order(docopt_args, ccf_pps_list):
     """Determine test order from option arguments."""
     test_order = ts.setup_tests(ccf_pps_list)
