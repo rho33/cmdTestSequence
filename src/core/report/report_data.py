@@ -192,6 +192,8 @@ def get_report_type(docopt_args, data_folder):
         return 'estar'
     elif 'VA' in data_folder.stem:
         return 'alternative'
+    elif 'Alternative' in data_folder.stem:
+        return 'alternative'
     elif 'PCL' in data_folder.stem:
         return 'pcl'
     else:
