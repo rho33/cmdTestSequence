@@ -6,9 +6,9 @@ Arguments:
 
 Options:
   -h --help
-  -e force ENERGYSTAR report type
-  -v force VA report type
-  -p force PCL report type
+  -e            force ENERGYSTAR report type
+  -v            force VA report type
+  -p            force PCL report type
 """
 import sys
 from pathlib import Path
