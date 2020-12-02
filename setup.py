@@ -35,7 +35,7 @@ if sys.platform == "win32":
 
 setup(
     name = 'TV Test System Scripts',
-    version = '0.13.0',
+    version = '0.13.1',
     description = "description",
     options = {
         "build_exe": build_exe_options,
@@ -47,7 +47,8 @@ setup(
         Executable(r"src\main_sequence.py", base=base),
         Executable(r"src\pcl_sequence.py", base=base),
         Executable(r"src\ccf.py", base=base),
-        Executable(r"src\status.py", base=base),
+        Executable(r"src\status.py", base=base, targetName='test_status'),
+        Executable(r"src\partial_sequence.py", base=base),
     ]
 )
 # cx_freeze randomly capitalizes some folders/file names which then causes errors.
