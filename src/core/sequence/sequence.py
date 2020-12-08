@@ -47,15 +47,15 @@ def create_test_seq_df(test_order, rename_pps, qs, qson=False):
     last_ccf_idx = df[df['test_name'].str.contains('ccf')].index[-1]
     prev_ccf_pps = None
     prev_peak = False
-    first = True
+    # first = True
     for idx, row in df.loc[last_ccf_idx+1:].iterrows():
         # apply load_ccf command
-        if first:
-            if pd.isna(row['special_commands']):
-                df.loc[idx, 'special_commands'] = f"load_ccf:default"
-            else:
-                df.loc[idx, 'special_commands'] = f"load_ccf:default," + df.loc[idx, 'special_commands']
-            first = False
+        # if first:
+        #     if pd.isna(row['special_commands']):
+        #         df.loc[idx, 'special_commands'] = f"load_ccf:default"
+        #     else:
+        #         df.loc[idx, 'special_commands'] = f"load_ccf:default," + df.loc[idx, 'special_commands']
+        #     first = False
         # if pd.notna(row['ccf_pps']):
         #     if pd.isna(row['special_commands']):
         #         df.loc[idx, 'special_commands'] = f"load_ccf:{row['ccf_pps']}"
