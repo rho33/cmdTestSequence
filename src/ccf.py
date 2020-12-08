@@ -53,7 +53,7 @@ def main():
             shutil.copy(src, dst)
     else:
         drop_cols = ['photometer', 'camera']
-        input_df = pd.read_csv(paths['ccf_input']).dropna(subset=drop_cols, how='all')
+        input_df = pd.read_csv(paths['ccf_input']).replace(0, np.NaN).dropna()
         # input_df = pd.read_csv(docopt_args['<input_path>']).dropna(subset=drop_cols, how='all')
         final_trendlines = {}
         for pps in input_df['pps'].unique():
