@@ -31,7 +31,7 @@ def main():
     #     src, dst = str(paths['ccf_input']), str(Path(ff.APPDATA_DIR).joinpath('ccf-input.csv'))
     #     shutil.copy(src, dst)
     # else:
-    # mask = mask | (test_seq_df['test_name'].apply(lambda name: 'ccf' in name))
+    mask = mask | (test_seq_df['test_name'].apply(lambda name: 'ccf' in name))
     
     partial_test_seq_df = test_seq_df[mask].reset_index().drop('index', axis=1)
     command_df = cs.create_command_df(partial_test_seq_df)
