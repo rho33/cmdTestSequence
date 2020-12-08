@@ -493,12 +493,12 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, re
                     
                     vat.create_element('color shift plot', plots.color_shift(color_shift_df))
                     if any(color_shift_crossovers['positive'].values()):
-                        text = '3° Crossovers: <br/><br/>'
+                        text = '3° Crossovers: <br/>'
                         for color, crossover in color_shift_crossovers['positive'].items():
                             if crossover is not None:
                                 text += f'{color}: {round(crossover, 1)}<br/>'
                     if any(color_shift_crossovers['negative'].values()):
-                        text = '-3° Crossovers: <br/><br/>'
+                        text += '<br/>-3° Crossovers: <br/>'
                         for color, crossover in color_shift_crossovers['negative'].items():
                             if crossover is not None:
                                 text += f'{color}: {round(crossover, 1)}<br/>'

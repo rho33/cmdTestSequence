@@ -43,7 +43,7 @@ def get_results_summary_df(merged_df, data_folder, waketimes):
     """Create a dataframe with one line per test showing test info and test results (average watts and nits)."""
     rsdf = merged_df.groupby(['tag']).first()
 
-    cols = ['test_name', 'test_time', 'preset_picture', 'video', 'mdd', 'abc', 'lux', 'qs', 'lan', 'wan']
+    cols = ['test_name', 'test_time', 'preset_picture', 'video', 'abc', 'lux', 'qs', 'lan', 'wan']
     cols = [col for col in cols if col in rsdf.columns]
     rsdf = rsdf[cols]
     avg_cols = ['watts', 'nits', "APL'"]
@@ -140,7 +140,7 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
         on_mode_df = on_mode_df.append(data, ignore_index=True)
     
     
-    cols = ['test_name', 'preset_picture', 'abc', 'lux', 'mdd', 'nits', 'limit', 'watts', 'ratio', 'result']
+    cols = ['test_name', 'preset_picture', 'abc', 'lux', 'nits', 'limit', 'watts', 'ratio', 'result']
     cols = [col for col in cols if col in on_mode_df.columns]
     on_mode_df = on_mode_df[cols]
     return on_mode_df
@@ -233,6 +233,7 @@ def get_status_df(test_seq_df, merged_df, paths, data_folder):
     cols = ['tag', 'test_name', 'test_time']
     status_df = test_seq_df.copy()[cols]
     status_df = status_df[status_df['test_name'] != 'screen_config']
+    status_df = status_df[~status_df['test_name'].str.contains('ccf')]
     if merged_df is not None and isinstance(merged_df, pd.DataFrame) and not merged_df.empty:
         def get_status(test_name):
         
@@ -417,17 +418,29 @@ def get_brightness_loss_df(paths):
 
 
 def get_crossover_x(series, crossover_y):
-    mask = (series > crossover_y) & (crossover_y > series.shift(-1))
-    masked_series = series[mask]
-    if len(masked_series) > 0:
-        x1 = masked_series.index[0]
-    else:
-        return None
-    x2 = series.index[list(series.index).index(x1) + 1]
-    y1 = series.loc[x1]
-    y2 = series.loc[x2]
-    slope = (y2 - y1) / (x2 - x1)
-    crossover_x = x1 + (crossover_y - y1) / slope
+    dc_mask = (series > crossover_y) & (crossover_y > series.shift(-1))
+    dc_masked_series = series[dc_mask]
+    crossover_x = None
+    if len(dc_masked_series) > 0:
+        x1 = dc_masked_series.index[0]
+
+        x2 = series.index[list(series.index).index(x1) + 1]
+        y1 = series.loc[x1]
+        y2 = series.loc[x2]
+        slope = (y2 - y1) / (x2 - x1)
+        crossover_x = x1 + (crossover_y - y1) / slope
+        return crossover_x
+    uc_mask = ((series > crossover_y) & (crossover_y > series.shift(1)))
+    uc_masked_series = series[uc_mask]
+    if len(uc_masked_series) > 0:
+        x1 = uc_masked_series.index[0]
+
+        x2 = series.index[list(series.index).index(x1) - 1]
+        y1 = series.loc[x1]
+        y2 = series.loc[x2]
+        slope = (y2 - y1) / (x2 - x1)
+        crossover_x = x1 + (crossover_y - y1) / slope
+        return crossover_x
     return crossover_x
 
 @except_none_log
