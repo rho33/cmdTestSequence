@@ -121,7 +121,7 @@ def lum_profile_message(row):
     extra = '* Next we will capture the luminance profile of the TV.\\n'
     message += message_instructions(row, extra=extra, countdown=False)
     test_clip = RENAME_DICT.get(row['video'], row['video'])
-    message += f'* When ready begin the {test_clip} clip and press the OK button precisely when the test clip content begins (when the screen is completely white and there is no overlay). The accuracy of the test depends on pressing the OK button at the correct time.\\n\\n'
+    message += f'* When ready begin the {test_clip} clip and press the OK button when the screen is completely white and there is no overlay.\\n\\n'
     message += display_row_settings(row)
     return message
 
@@ -192,6 +192,9 @@ def create_command_df(test_seq_df):
             command_rows.append(('user_command', standby_message(row)))
         elif 'stabilization' in row['test_name']:
             command_rows.append(('user_stabilization', stabilization_message(row), 300, STAB_MAX_ITER))
+        elif 'ccf' in row['test_name']:
+            before_ccf_msg = 'If the TV has Local Dimming disable it for the color correction factor step; then click OK'
+            command_rows.append(('user_command', before_ccf_msg))
         else:
             command_rows.append(('user_command', user_message(i, test_seq_df)))
 
@@ -207,6 +210,9 @@ def create_command_df(test_seq_df):
                     command_rows.append((command_type, command.strip(), 9))
                 else:
                     command_rows.append((command_type, command.strip()))
+        if 'ccf' in row['test_name']:
+            after_ccf_msg = 'If you changed Local Dimming prior to determining the color correction factor return it to its default setting for the rest of the test; then click OK'
+            command_rows.append(('user_command', after_ccf_msg))
 
     command_df = pd.DataFrame(data=command_rows)
     command_df.columns = ['command_type', 'command', 'stab_wait', 'max_stab'][:command_df.shape[1]]
