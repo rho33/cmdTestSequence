@@ -43,7 +43,7 @@ PATTERNS = {
     'repair_data': 'Repair/*datalog*.csv',
     'repair_lum_profile': 'Repair/*lum profile*.csv',
     'test_metadata': '*test-metadata*.csv',
-    'spectral_profile': '*spectral*.csv',
+    'spectral_profile': '*viewing*.csv',
     'old_merged': '*merged*.csv',
     'ccf': 'ccf-output.csv',
     'results_summary': 'results-summary.csv',
