@@ -260,12 +260,12 @@ def make_table(table_df, grid_style=GRID_STYLES['normal'], header=True, **kw):
     return table
 
 
-def make_img(plot, max_width=439, max_height=650, **kw):
+def make_img(img_path, max_width=439, max_height=650, **kw):
     """Return an Image object from a matplotlib.pyplot figure."""
-    imgdata = io.BytesIO()
-    plot.savefig(imgdata)
-    imgdata.seek(0)
-    img = Image(imgdata)
+    # imgdata = io.BytesIO()
+    # plot.savefig(imgdata)
+    # imgdata.seek(0)
+    img = Image(img_path)
     # resize image
     aspect_ratio = img.imageWidth / img.imageHeight
     if max_height * aspect_ratio > max_width:
@@ -277,12 +277,21 @@ def make_img(plot, max_width=439, max_height=650, **kw):
     return img
 
 
+def make_img_from_plot(plot, **kwargs):
+    imgdata = io.BytesIO()
+    plot.savefig(imgdata)
+    imgdata.seek(0)
+    return make_img(imgdata, **kwargs)
+
+
+
 def flowable_factory(content, **kw):
     """Return appropriate flowable object from given content type"""
     factory = {
-        type(gcf()): make_img,
+        type(gcf()): make_img_from_plot,
         str: make_paragraph,
-        pd.core.frame.DataFrame: make_table
+        pd.core.frame.DataFrame: make_table,
+        type(Path()): make_img
     }
     return factory[type(content)](content, **kw)
 
