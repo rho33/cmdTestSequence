@@ -50,7 +50,9 @@ PATTERNS = {
     'partial_test_seq': 'Partial/*partial-test-sequence*.csv',
     'partial_cmd_seq': 'Partial/*partial-command-sequence*.csv',
     'ccf_input': '*ccf-input*.csv',
-    'contrast': '*contrast*.csv'
+    'contrast': '*contrast*.csv',
+    'setup_images': '*setup_images*.csv',
+    'bar3_lum': '*pps_3bar_luminance*.csv',
 }
 
 

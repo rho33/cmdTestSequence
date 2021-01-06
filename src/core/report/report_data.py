@@ -1,5 +1,6 @@
 import sys
 import random
+import shutil
 from collections import defaultdict
 from pathlib import Path
 from functools import partial
@@ -543,6 +544,27 @@ def get_screen_area(test_specs_df):
 def get_model(test_specs_df):
     return f"{str(test_specs_df.loc['Make', 0]).upper()} {str(test_specs_df.loc['Model', 0]).upper()}"
 
+@except_none_log
+def get_setup_img_paths(paths, data_folder):
+    setup_img_dir = Path(data_folder).joinpath('SetupImg')
+    setup_img_dir.mkdir(exist_ok=True)
+    
+    img_paths = pd.read_csv(paths['setup_images'], header=None)[0]
+    img_paths = img_paths.apply(lambda img_path: Path(img_path))
+    # img_paths = [Path(img_path_str) for img_path_str in img_paths]
+    if not img_paths.apply(lambda img_path: setup_img_dir==img_path.parent).all():
+        for i, img_path in img_paths.items():
+            if setup_img_dir != img_path.parent:
+                new_img_path = setup_img_dir.joinpath(img_path.name)
+                shutil.copyfile(src=img_path, dst=new_img_path)
+                img_paths.loc[i] = new_img_path
+        img_paths.to_frame().to_csv(paths['setup_images'], header=None, index=None)
+    return img_paths.to_list()
+    
+@except_none_log
+def get_3bar_lum_df(paths):
+    return pd.read_csv(paths['bar3_lum'])
+
 
 def get_report_data(paths, data_folder, docopt_args):
     data = {}
@@ -552,6 +574,8 @@ def get_report_data(paths, data_folder, docopt_args):
     data['merged_df'] = get_merged_df(data['test_seq_df'], paths, data_folder)
     data['hdr'] = get_hdr(data['merged_df'])
     data['limit_funcs'] = get_limit_funcs(data['report_type'])
+    data['setup_img_paths'] = get_setup_img_paths(paths, data_folder)
+    data['bar3_lum_df'] = get_3bar_lum_df(paths)
     if data['report_type']=='pcl':
         data['persistence_dfs'] = get_persistence_dfs(paths)
         data['spectral_df'] = get_spectral_df(paths)

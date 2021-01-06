@@ -548,6 +548,16 @@ def add_test_specs(report, test_specs_df, **kwargs):
     return report
 
 
+def add_appendix(report, setup_img_paths, bar3_lum_df, **kwargs):
+    with report.new_section('Appendix', page_break=False) as app:
+        with app.new_section('Setup Images') as sui:
+            for i, path in enumerate(setup_img_paths):
+                sui.create_element(f'setup imgae {i}', path)
+        with app.new_section('3bar Luminance Table') as b3:
+            b3.create_element('table', bar3_lum_df)
+    return report
+
+
 def get_content_page(model, test_date):
     def content_page(canvas, doc):
         canvas.saveState()
@@ -576,7 +586,7 @@ def make_report(report_data):
     report = add_supplemental(report, **report_data)
     report = add_test_results_table(report, **report_data)
     report = add_test_results_plots(report, **report_data)
-    
+    report = add_appendix(report, **report_data)
     filename = {'estar': 'ENERGYSTAR-report.pdf',
                    'alternative': 'va-report.pdf',
                    'pcl': 'pcl-report.pdf'}.get(report_data['report_type'])
