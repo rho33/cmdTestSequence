@@ -547,7 +547,7 @@ def add_test_specs(report, test_specs_df, **kwargs):
         test_specs.create_element('test spec table', test_specs_df.reset_index().applymap(round_if_float), grid_style=style, header=False)
     return report
 
-
+@skip_and_warn
 def add_appendix(report, setup_img_paths, bar3_lum_df, **kwargs):
     with report.new_section('Appendix', page_break=False) as app:
         with app.new_section('Setup Images') as sui:
