@@ -18,9 +18,20 @@ def get_test_specs_df(merged_df, paths, report_type):
     """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
     if report_type == 'pcl' and paths['entry_forms'] is not None:
         test_specs_df = pd.read_excel(paths['entry_forms'], sheet_name='Misc', header=None, index_col=0)
+        test_specs_df.columns = [0]
     else:
-        test_specs_df = pd.read_csv(paths['test_metadata'], header=None, index_col=0)
-    test_specs_df.columns = [0]
+        test_specs_df = pd.read_csv(paths['test_metadata'], encoding='iso-8859-1', header=None, index_col=0)
+        test_specs_df.columns = [0]
+        height_idx_loc = list(test_specs_df.index).index('Screen Height')
+        df1 = test_specs_df[:height_idx_loc+1]
+        area = float(test_specs_df.loc['Screen Width', 0]) * float(test_specs_df.loc['Screen Height', 0])
+        df1.loc['Screen Area (sq in)'] = area
+        df2 = test_specs_df.iloc[height_idx_loc + 1:]
+        test_specs_df = pd.concat([df1, df2])
+
+        d = {'TV Make': 'Make', 'TV Model': 'Model'}
+        test_specs_df.index = test_specs_df.index.to_series().replace(d).values
+        
 
     start_date = pd.to_datetime(merged_df['time']).min().date()
     start_time = pd.to_datetime(merged_df['time']).min().time()
