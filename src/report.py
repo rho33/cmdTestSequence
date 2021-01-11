@@ -470,7 +470,7 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, re
         with supp.new_section('Light Directionality', page_break=False) as ld:
             ld = add_light_directionality(ld, lum_df)
         
-        if report_type == 'pcl':
+        if spectral_df is not None:
             @skip_and_warn
             def add_spectral_power_distribution(report):
                 with supp.new_section('Spectral Power Distribution') as spd:
@@ -571,6 +571,8 @@ def build_report(report,  filename, data_folder, model, test_date, report_title=
     content_page = get_content_page(model, test_date)
     title_page = get_title_page(report_title, model)
     path_str = str(Path(data_folder).joinpath(filename))
+    with open(ff.APPDATA_DIR.joinpath('report-location.txt'), 'w') as f:
+        f.write(path_str)
     doc = rls.make_doc(path_str, font='Calibri', title_page=title_page, content_page=content_page)
     doc.multiBuild(report.story())
     
