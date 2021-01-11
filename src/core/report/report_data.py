@@ -22,12 +22,13 @@ def get_test_specs_df(merged_df, paths, report_type):
     else:
         test_specs_df = pd.read_csv(paths['test_metadata'], encoding='iso-8859-1', header=None, index_col=0)
         test_specs_df.columns = [0]
-        height_idx_loc = list(test_specs_df.index).index('Screen Height')
-        df1 = test_specs_df[:height_idx_loc+1]
-        area = float(test_specs_df.loc['Screen Width', 0]) * float(test_specs_df.loc['Screen Height', 0])
-        df1.loc['Screen Area (sq in)'] = area
-        df2 = test_specs_df.iloc[height_idx_loc + 1:]
-        test_specs_df = pd.concat([df1, df2])
+        if 'Screen Area (sq in)' not in test_specs_df.index:
+            height_idx_loc = list(test_specs_df.index).index('Screen Height')
+            df1 = test_specs_df[:height_idx_loc+1]
+            area = float(test_specs_df.loc['Screen Width', 0]) * float(test_specs_df.loc['Screen Height', 0])
+            df1.loc['Screen Area (sq in)'] = area
+            df2 = test_specs_df.iloc[height_idx_loc + 1:]
+            test_specs_df = pd.concat([df1, df2])
 
         d = {'TV Make': 'Make', 'TV Model': 'Model'}
         test_specs_df.index = test_specs_df.index.to_series().replace(d).values
@@ -589,6 +590,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['bar3_lum_df'] = get_3bar_lum_df(paths)
     if data['report_type']=='pcl':
         data['persistence_dfs'] = get_persistence_dfs(paths)
+    if paths['spectral_profile'] is not None:
         data['spectral_df'] = get_spectral_df(paths)
         data['scdf'] = get_spectral_coordinates_df(paths)
         data['bt2020_coverage'] = get_coverage(data['scdf'], BT2020_COLOURSPACE)
