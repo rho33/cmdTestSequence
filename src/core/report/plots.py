@@ -347,7 +347,7 @@ def dimming_line_scatter(pps, rsdf, area, limit_funcs):
     min_lum, max_lum = 0, max(lums)*1.25
     
     if 'power_cap_func' in limit_func.keywords:
-        lum_bend = 0
+        lum_bend = 2
         prev_lim, new_lim = limit_func(area, luminance=lum_bend-1), limit_func(area, luminance=lum_bend)
         while new_lim > prev_lim:
             prev_lim = new_lim
