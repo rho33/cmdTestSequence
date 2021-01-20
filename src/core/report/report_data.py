@@ -1,4 +1,5 @@
 import sys
+import os
 import random
 import shutil
 from collections import defaultdict
@@ -214,28 +215,46 @@ def get_report_type(docopt_args, data_folder):
         return 'estar'
     return report_type
 
-@except_none_log
-def power_cap_funcs():
-    def power_cap(area, sf, a, b):
-        return sf * ((a * area) + b)
-    power_cap_coeffs = pd.read_csv(Path(sys.path[0]).joinpath(r'config\power-cap-coeffs.csv'), index_col='coef').to_dict()
-    power_cap_funcs = {func_name: partial(power_cap, **coeff_vals) for func_name, coeff_vals in
-                       power_cap_coeffs.items()}
-    return power_cap_funcs
+# @except_none_log
+# def power_cap_funcs():
+#     def power_cap(area, sf, a, b):
+#         return sf * ((a * area) + b)
+#     power_cap_coeffs = pd.read_csv(Path(sys.path[0]).joinpath(r'config\power-cap-coeffs.csv'), index_col='coef').to_dict()
+#     power_cap_funcs = {func_name: partial(power_cap, **coeff_vals) for func_name, coeff_vals in
+#                        power_cap_coeffs.items()}
+#     return power_cap_funcs
 
 @except_none_log
-def get_limit_funcs(report_type):
+def get_adjustment_factor(test_specs_df):
+    return test_specs_df.loc['POA_MAX Adjustment Factor', 0]
+
+
+@except_none_log
+def get_limit_funcs(report_type, adjustment_factor='4K'):
+    
+    af_formula = {
+        'HD': lambda area, luminance: 1.75 * (luminance * area) ** -.08,
+        '4K': lambda area, luminance: 1,
+        '4K_HCR': lambda area, luminance: 1.25,
+        '8K': lambda area, luminance: 5.63 * (luminance * area) ** -.11
+    }.get(adjustment_factor)
+    
+    def power_cap(area, luminance, sf, a, b):
+        return af_formula(area, luminance) * (sf * ((a * area) + b))
+    power_cap_coeffs = pd.read_csv(Path(sys.path[0]).joinpath(r'config\power-cap-coeffs.csv'), index_col='coef').to_dict()
+    power_cap_funcs = {func_name: partial(power_cap, **coeff_vals) for func_name, coeff_vals in power_cap_coeffs.items()}
+    
     def power_limit(area, luminance, sf, a, b, c, d, power_cap_func=None):
-        limit = sf * ((a * area + b) * luminance + c * area + d)
+        limit = af_formula(area, luminance) * (sf * ((a * area + b) * luminance + c * area + d))
         if power_cap_func is not None:
-            return min(limit, power_cap_func(area))
+            return min(limit, power_cap_func(area, luminance))
         else:
             return limit
     
     coeffs = pd.read_csv(Path(sys.path[0]).joinpath(r'config\coeffs.csv'), index_col='coef').to_dict()
     if report_type == 'estar':
         for func_name in coeffs:
-            coeffs[func_name]['power_cap_func'] = power_cap_funcs()[func_name]
+            coeffs[func_name]['power_cap_func'] = power_cap_funcs[func_name]
 
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
     return limit_funcs
@@ -261,8 +280,21 @@ def get_status_df(test_seq_df, merged_df, paths, data_folder):
             })
             return {True: 'Run', False: 'Not Run'}.get(status_checker[test_name])
         status_df['status'] = status_df['test_name'].apply(get_status)
+        def get_completion_time(row):
+            if row['status'] == 'Run':
+                if row['test_name'] in merged_df['test_name'].unique():
+                    return merged_df.groupby('test_name').last().loc[row['test_name']]['time']
+                elif row['test_name'] == 'stabilization':
+                    mask = merged_df['test_name'].apply(lambda test_name: 'stabilization' in test_name)
+                    return merged_df[mask].iloc[-1]['time']
+                elif row['test_name'] == 'lum_profile':
+                    return str(pd.Timestamp(os.path.getmtime(paths.get('lum_profile')), unit='s'))
+
+                
+        status_df['completion_time'] = status_df.apply(get_completion_time, axis=1)
     else:
         status_df['status'] = 'Not Run'
+        status_df['completion_time'] = None
     status_df.to_csv(data_folder.joinpath('test-status.csv'), index=False)
     return status_df
 
@@ -290,7 +322,6 @@ def get_merged_df(test_seq_df, paths, data_folder):
         
     merged_df.to_csv(Path(data_folder).joinpath('merged.csv'), index=False)
     
-    # todo: handle different report types
     
     return merged_df
 
@@ -585,7 +616,10 @@ def get_report_data(paths, data_folder, docopt_args):
     data['test_seq_df'] = get_test_seq_df(paths)
     data['merged_df'] = get_merged_df(data['test_seq_df'], paths, data_folder)
     data['hdr'] = get_hdr(data['merged_df'])
-    data['limit_funcs'] = get_limit_funcs(data['report_type'])
+    data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
+    data['adjustment_factor'] = get_adjustment_factor(data['test_specs_df'])
+    data['limit_funcs'] = get_limit_funcs(data['report_type'], data['adjustment_factor'])
+    # data['estar_limit_funcs'] = get_limit_funcs('estar', data['adjustment_factor'])
     data['setup_img_paths'] = get_setup_img_paths(paths, data_folder)
     data['bar3_lum_df'] = get_3bar_lum_df(paths)
     if data['report_type']=='pcl':
@@ -616,11 +650,12 @@ def get_report_data(paths, data_folder, docopt_args):
         data['brightness_loss_crossover'] = None
     data['waketimes'] = get_waketimes(data['merged_df'])
     data['rsdf'] = get_results_summary_df(data['merged_df'], data_folder, data['waketimes'])
-    data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
+    
     data['test_date'] = get_test_date(data['test_specs_df'])
     data['area'] = get_screen_area(data['test_specs_df'])
     data['model'] = get_model(data['test_specs_df'])
     data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
+    # data['estar_on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], 'estar', data['hdr'])
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['status_df'] = get_status_df(data['test_seq_df'], data['merged_df'], paths, data['data_folder'])
     data['lum_df'] = get_lum_df(paths)
