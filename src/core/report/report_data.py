@@ -103,14 +103,14 @@ def get_compliance_summary_df(on_mode_df, standby_df, report_type, hdr):
     return csdf.reset_index().drop('index', axis=1)
 
 @except_none_log
-def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
+def get_on_mode_df(rsdf, limit_funcs, area, limit_type, hdr):
     """Create a dataframe and corresponding reportlab TableStyle data which displays the results of on mode testing."""
     def add_pps_tests(on_mode_df, cdf, abc_off_test, abc_on_tests, limit_func):
         on_mode_df = on_mode_df.append(cdf.loc[abc_off_test])
 
         abc_off_pwr = on_mode_df.loc[abc_off_test, 'watts']
         abc_off_lum = on_mode_df.loc[abc_off_test, 'nits']
-        if abc_on_tests:
+        if abc_on_tests and limit_type != 'estar':
             for test in abc_on_tests:
                 on_mode_df = on_mode_df.append(cdf.loc[test])
             abc_on_pwr = on_mode_df.loc[abc_on_tests, 'watts'].mean()
@@ -131,7 +131,7 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
 
     cdf = rsdf.set_index('test_name')
     on_mode_df = cdf.drop(cdf.index)
-
+    
     def_abc_tests = [test for test in ['default_100', 'default_35', 'default_12', 'default_3'] if test in cdf.index]
     on_mode_df = add_pps_tests(on_mode_df, cdf, 'default', def_abc_tests, limit_funcs['default'])
 
@@ -146,7 +146,7 @@ def get_on_mode_df(rsdf, limit_funcs, area, report_type, hdr):
     on_mode_df = on_mode_df.reset_index()
 
     
-    if report_type == 'estar':
+    if limit_type == 'estar':
         on_mode_df['result'] = (on_mode_df['watts'] < on_mode_df['limit']).apply({True: 'Pass', False: 'Fail'}.get)
     else:
         on_mode_df['ratio'] = on_mode_df['watts'] / on_mode_df['limit']
@@ -230,29 +230,29 @@ def get_adjustment_factor(test_specs_df):
 
 
 @except_none_log
-def get_limit_funcs(report_type, adjustment_factor='4K'):
+def get_limit_funcs(limit_type, adjustment_factor='4K'):
     
-    af_formula = {
-        'HD': lambda area, luminance: 1.75 * (luminance * area) ** -.08,
-        '4K': lambda area, luminance: 1,
-        '4K_HCR': lambda area, luminance: 1.25,
-        '8K': lambda area, luminance: 5.63 * (luminance * area) ** -.11
+    af_value = {
+        'HD': .75,
+        '4K': 1,
+        '4K_HCR': 1.25,
+        '8K': 1.25
     }.get(adjustment_factor)
     
     def power_cap(area, luminance, sf, a, b):
-        return af_formula(area, luminance) * (sf * ((a * area) + b))
+        return af_value * (sf * ((a * area) + b))
     power_cap_coeffs = pd.read_csv(Path(sys.path[0]).joinpath(r'config\power-cap-coeffs.csv'), index_col='coef').to_dict()
     power_cap_funcs = {func_name: partial(power_cap, **coeff_vals) for func_name, coeff_vals in power_cap_coeffs.items()}
     
     def power_limit(area, luminance, sf, a, b, c, d, power_cap_func=None):
-        limit = af_formula(area, luminance) * (sf * ((a * area + b) * luminance + c * area + d))
+        limit = af_value * (sf * ((a * area + b) * luminance + c * area + d))
         if power_cap_func is not None:
             return min(limit, power_cap_func(area, luminance))
         else:
             return limit
     
     coeffs = pd.read_csv(Path(sys.path[0]).joinpath(r'config\coeffs.csv'), index_col='coef').to_dict()
-    if report_type == 'estar':
+    if limit_type == 'estar':
         for func_name in coeffs:
             coeffs[func_name]['power_cap_func'] = power_cap_funcs[func_name]
 
@@ -613,12 +613,14 @@ def get_report_data(paths, data_folder, docopt_args):
     data = {}
     data['data_folder'] = data_folder
     data['report_type'] = get_report_type(docopt_args, data_folder)
+    data['omit_estar'] = docopt_args['--omit']
     data['test_seq_df'] = get_test_seq_df(paths)
     data['merged_df'] = get_merged_df(data['test_seq_df'], paths, data_folder)
     data['hdr'] = get_hdr(data['merged_df'])
     data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
     data['adjustment_factor'] = get_adjustment_factor(data['test_specs_df'])
-    data['limit_funcs'] = get_limit_funcs(data['report_type'], data['adjustment_factor'])
+    data['estar_limit_funcs'] = get_limit_funcs('estar', data['adjustment_factor'])
+    data['va_limit_funcs'] = get_limit_funcs('alternative', data['adjustment_factor'])
     # data['estar_limit_funcs'] = get_limit_funcs('estar', data['adjustment_factor'])
     data['setup_img_paths'] = get_setup_img_paths(paths, data_folder)
     data['bar3_lum_df'] = get_3bar_lum_df(paths)
@@ -654,12 +656,13 @@ def get_report_data(paths, data_folder, docopt_args):
     data['test_date'] = get_test_date(data['test_specs_df'])
     data['area'] = get_screen_area(data['test_specs_df'])
     data['model'] = get_model(data['test_specs_df'])
-    data['on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], data['report_type'], data['hdr'])
+    data['estar_on_mode_df'] = get_on_mode_df(data['rsdf'], data['estar_limit_funcs'], data['area'], 'estar', data['hdr'])
+    data['va_on_mode_df'] = get_on_mode_df(data['rsdf'], data['va_limit_funcs'], data['area'], 'alternative', data['hdr'])
     # data['estar_on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], 'estar', data['hdr'])
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['status_df'] = get_status_df(data['test_seq_df'], data['merged_df'], paths, data['data_folder'])
     data['lum_df'] = get_lum_df(paths)
-    data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
+    # data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
     
     
     return data

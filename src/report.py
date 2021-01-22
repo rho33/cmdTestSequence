@@ -311,154 +311,12 @@ def add_persistence_summary(report, persistence_dfs, **kwargs):
     return report
 
 @skip_and_warn
-def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_funcs, hdr, rsdf, area, standby_df,
-                           waketimes, csdf, adjustment_factor, **kwargs):
-    
-        
+def add_compliance_section(report, merged_df, report_type, omit_estar, estar_on_mode_df, va_on_mode_df,
+                           estar_limit_funcs, va_limit_funcs, hdr, rsdf, area, standby_df,
+                           waketimes, adjustment_factor, **kwargs):
+
     with report.new_section('Compliance', page_break=False) as cat:
-        with cat.new_section('On Mode Summary') as on_mode_summary:
-            @skip_and_warn
-            def add_compliance_summary_on_mode(report):
-
-                table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
-
-                style = on_mode_df_style(on_mode_df, report_type)
-                if report_type != 'estar':
-                    rename_tests = {
-                        'default': 'P<sub rise=2>oa_Default_ABC_Off</sub>',
-                        'default_100': 'P<sub rise=2>oa_Default_100Lux</sub>',
-                        'default_35': 'P<sub rise=2>oa_Default_35Lux</sub>',
-                        'default_12': 'P<sub rise=2>oa_Default_12Lux</sub>',
-                        'default_3': 'P<sub rise=2>oa_Default_3Lux</sub>',
-                        'default_measured': 'P<sub rise=2>oa_Default</sub>',
-                        
-                        'brightest': 'P<sub rise=2>oa_Brightest_ABC_Off</sub>',
-                        'brightest_100': 'P<sub rise=2>oa_Brightest_100Lux</sub>',
-                        'brightest_35': 'P<sub rise=2>oa_Brightest_35Lux</sub>',
-                        'brightest_12': 'P<sub rise=2>oa_Brightest_12Lux</sub>',
-                        'brightest_3': 'P<sub rise=2>oa_Brightest_3Lux</sub>',
-                        'brightest_measured': 'P<sub rise=2>oa_Brightest</sub>',
-                        
-                        'hdr10': 'P<sub rise=2>oa_HDR10_ABC_Off</sub>',
-                        'hdr10_100': 'P<sub rise=2>oa_HDR10_100Lux</sub>',
-                        'hdr10_35': 'P<sub rise=2>oa_HDR10_35Lux</sub>',
-                        'hdr10_12': 'P<sub rise=2>oa_HDR10_12Lux</sub>',
-                        'hdr10_3': 'P<sub rise=2>oa_HDR10_3Lux</sub>',
-                        'hdr10_measured': 'P<sub rise=2>oa_HDR10</sub>',
-                        'average_measured': 'P<sub rise=2>oa_Average</sub>'
-                    }
-    
-                    table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
-                    if 'default_100' not in table_df['Test Name'].values:
-                        table_df = table_df.replace({'P<sub rise=2>oa_Default_ABC_Off</sub>': 'P<sub rise=2>oa_Default</sub>'})
-                    if 'brightest_100' not in table_df['Test Name'].values:
-                        table_df = table_df.replace({'P<sub rise=2>oa_Brightest_ABC_Off</sub>':'P<sub rise=2>oa_Brightest</sub>'})
-                    if 'hdr10_100' not in table_df['Test Name'].values:
-                        table_df = table_df.replace({'P<sub rise=2>oa_HDR10_ABC_Off</sub>': 'P<sub rise=2>oa_HDR10</sub>'})
-                    # table_df = table_df.rename(columns={'Test Name': ''})
-                    table_df = table_df.replace({'default_measured': '', 'brightest_measured': '', 'hdr10_measured': '', 'average_measured': ''})
-                else:
-                    rename_tests = {
-                        'default': 'P<sub rise=2>on_Default</sub>',
-                        'brightest': 'P<sub rise=2>on_Brightest</sub>',
-                        'hdr10': 'P<sub rise=2>on_HDR10</sub>',
-                    }
-                    table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
-                on_mode_summary.create_element('on mode table', table_df, grid_style=style)
-
-
-                if report_type == 'estar':
-                    # todo: implement estar text
-                    #   probably dependent on how get_on_mode_df implements
-                    #   potentially include within same function
-                    pass
-                else:
-                    text = "P<sub rise=2>oa_Average</sub> is the average Power/Power Limit of P<sub " \
-                           "rise=2>oa_Default</sub>, P<sub rise=2>oa_Brightest</sub>, and P<sub rise=2>oa_HDR10</sub> " \
-                           "(if applicable). P<sub rise=2>oa_Average</sub> must be less than 1.0 to comply. "
-                    on_mode_summary.create_element('text', text)
-                s = f'TV Area: {area} sq. in.<br />Adjustment Factor: {adjustment_factor}'
-                on_mode_summary.create_element('compliance paramaters', s)
-                adjustment_factor_df = pd.DataFrame(data=[
-                    ['HD', '1.75*(luminance*area)<super rise=6 size=7>-0.08</super>'],
-                    ['4K', '1'],
-                    ['4K_HCR', '1.25'],
-                    ['8K', '5.63*(luminance*area)<super rise=6 size=8>-0.11</super>']
-                ], columns=['Adjustment Factor', 'Value'])
-
-                on_mode_summary.create_element('adjustment factor header', '<strong>Adjustment Factor Values</strong><br/>')
-                on_mode_summary.create_element('adjustment factor table', adjustment_factor_df, colWidths=[90, 135], hAlign='LEFT')
-    
-                # display power limit functions below on mode table
-                limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
-                on_mode_summary.create_element('default limit function', limit_func_strings['default'])
-                on_mode_summary.create_element('brightest limit function', limit_func_strings['brightest'])
-                if hdr:
-                    on_mode_summary.create_element('hdr limit function', limit_func_strings['hdr'])
-
-                # on_mode_summary.create_element('adjustment factor table', adjustment_factor_df)
-            add_compliance_summary_on_mode(report)
-            # with on_mode_summary.new_sectoin('ENERGY STAR On Mode Summary') as estar_on_mode_summary:
-            #     def add_estar_compliance(report):
-            #         table_df = clean_rsdf(estar_on_mode_df, cols=on_mode_df.columns)
-            #         style = on_mode_df_style(on_mode_df, 'estar')
-            #         rename_tests = {
-            #             'default': 'P<sub rise=2>oa_Default_ABC_Off</sub>',
-            #             'default_100': 'P<sub rise=2>oa_Default_100Lux</sub>',
-            #             'default_35': 'P<sub rise=2>oa_Default_35Lux</sub>',
-            #             'default_12': 'P<sub rise=2>oa_Default_12Lux</sub>',
-            #             'default_3': 'P<sub rise=2>oa_Default_3Lux</sub>',
-            #             'default_measured': 'P<sub rise=2>oa_Default</sub>',
-            #
-            #             'brightest': 'P<sub rise=2>oa_Brightest_ABC_Off</sub>',
-            #             'brightest_100': 'P<sub rise=2>oa_Brightest_100Lux</sub>',
-            #             'brightest_35': 'P<sub rise=2>oa_Brightest_35Lux</sub>',
-            #             'brightest_12': 'P<sub rise=2>oa_Brightest_12Lux</sub>',
-            #             'brightest_3': 'P<sub rise=2>oa_Brightest_3Lux</sub>',
-            #             'brightest_measured': 'P<sub rise=2>oa_Brightest</sub>',
-            #
-            #             'hdr10': 'P<sub rise=2>oa_HDR10_ABC_Off</sub>',
-            #             'hdr10_100': 'P<sub rise=2>oa_HDR10_100Lux</sub>',
-            #             'hdr10_35': 'P<sub rise=2>oa_HDR10_35Lux</sub>',
-            #             'hdr10_12': 'P<sub rise=2>oa_HDR10_12Lux</sub>',
-            #             'hdr10_3': 'P<sub rise=2>oa_HDR10_3Lux</sub>',
-            #             'hdr10_measured': 'P<sub rise=2>oa_HDR10</sub>',
-            #             'average_measured': 'P<sub rise=2>oa_Average</sub>'
-            #         }
-            #         if 'default_100' not in table_df['Test Name'].values:
-            #             table_df = table_df.replace({'P<sub rise=2>oa_Default_ABC_Off</sub>': 'P<sub rise=2>oa_Default</sub>'})
-            #         if 'brightest_100' not in table_df['Test Name'].values:
-            #             table_df = table_df.replace({'P<sub rise=2>oa_Brightest_ABC_Off</sub>':'P<sub rise=2>oa_Brightest</sub>'})
-            #         if 'hdr10_100' not in table_df['Test Name'].values:
-            #             table_df = table_df.replace({'P<sub rise=2>oa_HDR10_ABC_Off</sub>': 'P<sub rise=2>oa_HDR10</sub>'})
-            #         # table_df = table_df.rename(columns={'Test Name': ''})
-            #         table_df = table_df.replace({'default_measured': '', 'brightest_measured': '', 'hdr10_measured': '', 'average_measured': ''})
-            #
-            #         table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
-            #         estar_on_mode_summary.create_element('estar on mode table', table_df, grid_style=style)
-            #         adjustment_factor_df = pd.DataFrame(data=[
-            #             ['HD', '1.75*(luminance*area)<super rise=6 size=7>-0.08</super>'],
-            #             ['4K', '1'],
-            #             ['4K_HCR', '1.25'],
-            #             ['8K', '5.63*(luminance*area)<super rise=6 size=8>-0.11</super>']
-            #         ], columns=['Adjustment Factor', 'Value'])
-            #
-            #         on_mode_summary.create_element('adjustment factor header',
-            #                                        '<strong>Adjustment Factor Values</strong><br/>')
-            #         on_mode_summary.create_element('adjustment factor table', adjustment_factor_df, colWidths=[90, 135],
-            #                                        hAlign='LEFT')
-            #
-            #         # display power limit functions below on mode table
-            #         limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
-            #         on_mode_summary.create_element('default limit function', limit_func_strings['default'])
-            #         on_mode_summary.create_element('brightest limit function', limit_func_strings['brightest'])
-            #         if hdr:
-            #             on_mode_summary.create_element('hdr limit function', limit_func_strings['hdr'])
-            #
-            #     add_estar_compliance(report)
-            
-        
-        with cat.new_section('Standby Summary') as standby_summary:
+        with cat.new_section('Standby Summary', page_break=False) as standby_summary:
             @skip_and_warn
             def add_compliance_summary_standby(report):
                 table_df = clean_rsdf(standby_df, standby_df.columns)
@@ -469,34 +327,132 @@ def add_compliance_section(report, merged_df, on_mode_df, report_type, limit_fun
                     'standby_multicast': 'P<sub rise=2>MDNS-STANDBY-ACTIVE-LOW</sub>',
                     'standby': 'P<sub rise=2>STANDBY-ACTIVE-LOW</sub>',
                     'standby_active_low': 'P<sub rise=2>STANDBY-ACTIVE-LOW</sub>',
-                    
+                
                 }
                 table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
                 standby_summary.create_element('table', table_df, grid_style=standby_df_style(standby_df))
+        
             add_compliance_summary_standby(report)
-        with cat.new_section('On Mode Charts') as on_mode_charts:
-            @skip_and_warn
-            def add_on_mode_charts(report):
-                # add scatter plot for each pps showing tv power measurements in relation to the relevant limit function line
-                for pps in ['default', 'brightest']:
-                    on_mode_charts.create_element(
-                        f'{pps} dimming plot',
-                        plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
-                    )
-                if hdr:
-                    on_mode_charts.create_element(
-                        'hdr dimming plot',
-                        plots.dimming_line_scatter('hdr10', rsdf, area, limit_funcs)
-                    )
-                on_mode_charts.create_element('all dimming lines plot', plots.all_dimming_lines(rsdf))
-            add_on_mode_charts(report)
-        with cat.new_section('Standby Chart') as standby_chart:
-            @skip_and_warn
-            def add_standby_chart(report):
-                standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
-                # time vs power (line) plot showing all standby tests
-                standby_chart.create_element('standby_plot', plots.standby(merged_df, standby_tests))
-            add_standby_chart(report)
+            with standby_summary.new_section('Standby Chart') as standby_chart:
+                @skip_and_warn
+                def add_standby_chart(report):
+                    standby_tests = [test for test in rsdf.test_name.unique() if 'standby' in test]
+                    # time vs power (line) plot showing all standby tests
+                    standby_chart.create_element('standby_plot', plots.standby(merged_df, standby_tests))
+    
+                add_standby_chart(report)
+        @skip_and_warn
+        def add_compliance_summary_on_mode(report, section, limit_type, limit_funcs, on_mode_df):
+        
+            table_df = clean_rsdf(on_mode_df, cols=on_mode_df.columns)
+        
+            style = on_mode_df_style(on_mode_df, limit_type)
+            if limit_type != 'estar':
+                rename_tests = {
+                    'default': 'P<sub rise=2>oa_Default_ABC_Off</sub>',
+                    'default_100': 'P<sub rise=2>oa_Default_100Lux</sub>',
+                    'default_35': 'P<sub rise=2>oa_Default_35Lux</sub>',
+                    'default_12': 'P<sub rise=2>oa_Default_12Lux</sub>',
+                    'default_3': 'P<sub rise=2>oa_Default_3Lux</sub>',
+                    'default_measured': 'P<sub rise=2>oa_Default</sub>',
+                
+                    'brightest': 'P<sub rise=2>oa_Brightest_ABC_Off</sub>',
+                    'brightest_100': 'P<sub rise=2>oa_Brightest_100Lux</sub>',
+                    'brightest_35': 'P<sub rise=2>oa_Brightest_35Lux</sub>',
+                    'brightest_12': 'P<sub rise=2>oa_Brightest_12Lux</sub>',
+                    'brightest_3': 'P<sub rise=2>oa_Brightest_3Lux</sub>',
+                    'brightest_measured': 'P<sub rise=2>oa_Brightest</sub>',
+                
+                    'hdr10': 'P<sub rise=2>oa_HDR10_ABC_Off</sub>',
+                    'hdr10_100': 'P<sub rise=2>oa_HDR10_100Lux</sub>',
+                    'hdr10_35': 'P<sub rise=2>oa_HDR10_35Lux</sub>',
+                    'hdr10_12': 'P<sub rise=2>oa_HDR10_12Lux</sub>',
+                    'hdr10_3': 'P<sub rise=2>oa_HDR10_3Lux</sub>',
+                    'hdr10_measured': 'P<sub rise=2>oa_HDR10</sub>',
+                    'average_measured': 'P<sub rise=2>oa_Average</sub>'
+                }
+            
+                table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
+                if 'default_100' not in table_df['Test Name'].values:
+                    table_df = table_df.replace(
+                        {'P<sub rise=2>oa_Default_ABC_Off</sub>': 'P<sub rise=2>oa_Default</sub>'})
+                if 'brightest_100' not in table_df['Test Name'].values:
+                    table_df = table_df.replace(
+                        {'P<sub rise=2>oa_Brightest_ABC_Off</sub>': 'P<sub rise=2>oa_Brightest</sub>'})
+                if 'hdr10_100' not in table_df['Test Name'].values:
+                    table_df = table_df.replace({'P<sub rise=2>oa_HDR10_ABC_Off</sub>': 'P<sub rise=2>oa_HDR10</sub>'})
+                # table_df = table_df.rename(columns={'Test Name': ''})
+                table_df = table_df.replace(
+                    {'default_measured': '', 'brightest_measured': '', 'hdr10_measured': '', 'average_measured': ''})
+            else:
+                rename_tests = {
+                    'default': 'P<sub rise=2>on_Default</sub>',
+                    'brightest': 'P<sub rise=2>on_Brightest</sub>',
+                    'hdr10': 'P<sub rise=2>on_HDR10</sub>',
+                }
+                table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
+            section.create_element('on mode table', table_df, grid_style=style)
+        
+            if limit_type == 'estar':
+                # todo: implement estar text
+                #   probably dependent on how get_on_mode_df implements
+                #   potentially include within same function
+                pass
+            else:
+                text = "P<sub rise=2>oa_Average</sub> is the average Power/Power Limit of P<sub " \
+                       "rise=2>oa_Default</sub>, P<sub rise=2>oa_Brightest</sub>, and P<sub rise=2>oa_HDR10</sub> " \
+                       "(if applicable). P<sub rise=2>oa_Average</sub> must be less than 1.0 to comply. "
+                section.create_element('text', text)
+            s = f'TV Area: {area} sq. in.<br />Adjustment Factor: {adjustment_factor}'
+            section.create_element('compliance paramaters', s)
+            adjustment_factor_df = pd.DataFrame(data=[
+                ['HD', '0.75'],
+                ['4K', '1'],
+                ['4K_HCR', '1.25'],
+                ['8K', '1.5']
+            ], columns=['Adjustment Factor', 'Value'])
+        
+            section.create_element('adjustment factor header', '<strong>Adjustment Factor Values</strong><br/>')
+            section.create_element('adjustment factor table', adjustment_factor_df, colWidths=[90, 135],
+                                   hAlign='LEFT')
+        
+            # display power limit functions below on mode table
+            limit_func_strings = get_limit_func_strings(limit_funcs, hdr)
+            section.create_element('default limit function', limit_func_strings['default'])
+            section.create_element('brightest limit function', limit_func_strings['brightest'])
+            if hdr:
+                section.create_element('hdr limit function', limit_func_strings['hdr'])
+
+        @skip_and_warn
+        def add_on_mode_charts(report, section, limit_funcs):
+            # add scatter plot for each pps showing tv power measurements in relation to the relevant limit function line
+            for pps in ['default', 'brightest']:
+                section.create_element(
+                    f'{pps} dimming plot',
+                    plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
+                )
+            if hdr:
+                section.create_element(
+                    'hdr dimming plot',
+                    plots.dimming_line_scatter('hdr10', rsdf, area, limit_funcs)
+                )
+            
+        if report_type!='estar':
+            with cat.new_section('VA On Mode Summary') as on_mode_summary:
+                    # on_mode_summary.create_element('adjustment factor table', adjustment_factor_df)
+                add_compliance_summary_on_mode(report, on_mode_summary, 'alternative', va_limit_funcs, va_on_mode_df)
+                with on_mode_summary.new_section('VA On Mode Charts') as on_mode_charts:
+                    add_on_mode_charts(report, on_mode_charts, va_limit_funcs)
+        if not omit_estar:
+            with cat.new_section('ENERGY STAR On Mode Summary') as estar_on_mode_summary:
+                add_compliance_summary_on_mode(report, estar_on_mode_summary, 'estar', estar_limit_funcs, estar_on_mode_df)
+                with estar_on_mode_summary.new_section('ENERGY STAR On Mode Charts') as estar_on_mode_charts:
+                    add_on_mode_charts(report, estar_on_mode_charts, estar_limit_funcs)
+            
+        with cat.new_section('All On Mode Tests Chart') as all_tests_chart:
+            all_tests_chart.create_element('all dimming lines plot', plots.all_dimming_lines(rsdf))
+            
+
     return report
 
 @skip_and_warn
@@ -532,7 +488,7 @@ def add_overlay(report, rsdf, merged_df, test_names, **kwargs):
     report.create_element('plot', plots.overlay(merged_df, test_names))
 
 @skip_and_warn
-def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, report_type, washout_df, washout_crossovers,
+def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, washout_df, washout_crossovers,
                      color_shift_df, color_shift_crossovers, brightness_loss_df, brightness_loss_crossover, **kwargs):
     with report.new_section('Supplemental Test Results', page_break=False) as supp:
         with supp.new_section('Stabilization') as stab:
