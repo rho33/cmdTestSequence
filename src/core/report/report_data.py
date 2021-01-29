@@ -8,6 +8,7 @@ from functools import partial
 import warnings
 import numpy as np
 import pandas as pd
+from scipy.stats import linregress
 from colour.models import BT2020_COLOURSPACE, BT709_COLOURSPACE
 from colour import XYZ_to_Lab, Lab_to_LCHab
 from . import merge
@@ -608,6 +609,19 @@ def get_setup_img_paths(paths, data_folder):
 def get_3bar_lum_df(paths):
     return pd.read_csv(paths['bar3_lum'])
 
+@except_none_log
+def get_dimming_line_df(rsdf, data_folder):
+    dimming_line_df = pd.DataFrame(columns=['pps', 'slope', 'intercept', 'r2'])
+    for pps in ['default', 'brightest', 'hdr']:
+        pps_df = rsdf[rsdf['test_name'].str.contains(pps)]
+        if len(pps_df) > 1:
+            x, y = pps_df['nits'], pps_df['watts']
+            slope, intercept, r, _, _ = linregress(x, y)
+            r2 = r ** 2
+            row_data = {'pps': pps, 'slope': slope, 'intercept': intercept, 'r2': r2}
+            dimming_line_df = dimming_line_df.append(row_data, ignore_index=True)
+    dimming_line_df.to_csv(data_folder.joinpath('dimming-lines.csv'), index=False)
+    return dimming_line_df
 
 def get_report_data(paths, data_folder, docopt_args):
     data = {}
@@ -662,6 +676,7 @@ def get_report_data(paths, data_folder, docopt_args):
     data['standby_df'] = get_standby_df(data['rsdf'])
     data['status_df'] = get_status_df(data['test_seq_df'], data['merged_df'], paths, data['data_folder'])
     data['lum_df'] = get_lum_df(paths)
+    get_dimming_line_df(data['rsdf'], data_folder)
     # data['csdf'] = get_compliance_summary_df(data['on_mode_df'], data['standby_df'], data['report_type'], data['hdr'])
     
     
