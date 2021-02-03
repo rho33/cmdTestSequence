@@ -29,14 +29,12 @@ RENAME_DICT = {
 }
 
 
-
-
 STAB_MAX_ITER = 6
 
 # todo: manual sequence custom message
 def display_row_settings(row):
     """Create test condition/settings portion of test prompt."""
-    non_setting_cols = ['special_commands', 'tag', 'test_name', 'test_time']
+    non_setting_cols = ['special_commands', 'tag', 'test_name', 'test_time', 'lan', 'wan']
     display_row = row.drop(non_setting_cols).dropna().rename(RENAME_DICT).replace(RENAME_DICT)
     s = '-'*80
     s += '\\nEnsure that the current test conditions are:\\n\\n'
