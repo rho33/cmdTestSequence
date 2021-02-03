@@ -228,7 +228,13 @@ def all_dimming_lines(rsdf):
     pps_colors = {pps: color for pps, color in pps_colors.items() if
                   any(rsdf['test_name'].apply(lambda name: pps in name))}
     pps_names = dict(zip(rsdf['test_name'], rsdf['preset_picture']))
-    handles = [mlines.Line2D([], [], label=f'{pps}: {pps_names[pps]}', color=color) for pps, color in
+    for pps in pps_colors.keys():
+        if pps not in rsdf['test_name']:
+            mask = rsdf['test_name'].apply(lambda name: pps in name)
+            if any(mask):
+                pps_names[pps] = rsdf[mask]['preset_picture'].get(pps)
+        
+    handles = [mlines.Line2D([], [], label=f'{pps}: {pps_names.get(pps)}', color=color) for pps, color in
                pps_colors.items()]
     for pps, color in pps_colors.items():
         points = get_points(pps, rsdf)
@@ -253,11 +259,11 @@ def all_dimming_lines(rsdf):
         abc_on_lums = [point[0] for label, point in points.items() if label != 'ABC Off']
         abc_on_power = [point[1] for label, point in points.items() if label not in ['ABC Off', 'Minimum Backlight']]
         
-        if abc_on_power:
+        if abc_on_power and points.get('ABC Off') is not None:
             abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
             measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
             plt.plot(*measured, marker='o', color='black', markersize=7)
-        else:
+        elif not abc_on_power:
             measured = points['ABC Off']
             plt.plot(*measured, marker='o', color='black', markersize=7)
         
