@@ -35,7 +35,7 @@ if sys.platform == "win32":
 
 setup(
     name = 'TV Test System Scripts',
-    version = '0.15.0',
+    version = '0.15.3',
     description = "description",
     options = {
         "build_exe": build_exe_options,
