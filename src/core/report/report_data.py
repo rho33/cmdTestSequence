@@ -276,8 +276,9 @@ def get_status_df(test_seq_df, merged_df, paths, data_folder):
                 'lum_profile': bool(paths.get('lum_profile')),
                 'camera_ccf_default': bool(paths.get('ccf')),
                 'stabilization': 'stabilization1' in merged_df['test_name'].unique(),
-                'active_low_waketime': pd.notna(
-                    merged_df[merged_df['test_name'] == 'standby_active_low'].iloc[0]['waketime'])
+                'active_low_waketime': pd.notna(merged_df.query('test_name=="standby_active_low"')['waketime'].get(0))
+                    # pd.notna(
+                    # merged_df[merged_df['test_name']=='standby_active_low'].iloc[0]['waketime'])
             })
             return {True: 'Run', False: 'Not Run'}.get(status_checker[test_name])
         status_df['status'] = status_df['test_name'].apply(get_status)
