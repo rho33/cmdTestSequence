@@ -30,7 +30,7 @@ def skip_and_warn(func):
             return func(*args, **kwargs)
         except Exception as e:
             warnings.filterwarnings('always', category=UserWarning)
-            msg = f'\n{func.__name__} Failed:\n{e}'
+            msg = f'\n\n{func.__name__} Failed:\n{e}'
             warnings.warn(msg)
             logging.exception(msg)
         return args[0]
