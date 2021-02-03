@@ -526,6 +526,7 @@ def add_supplemental(report, rsdf, merged_df, hdr, lum_df, spectral_df, scdf, wa
                     vat.create_element('washout crossovers', text)
                     
                     vat.create_element('color shift plot', plots.color_shift(color_shift_df))
+                    text = ''
                     if any(color_shift_crossovers['positive'].values()):
                         text = '3° Crossovers: <br/>'
                         for color, crossover in color_shift_crossovers['positive'].items():
