@@ -276,7 +276,7 @@ def get_status_df(test_seq_df, merged_df, paths, data_folder):
                 'lum_profile': bool(paths.get('lum_profile')),
                 'camera_ccf_default': bool(paths.get('ccf')),
                 'stabilization': 'stabilization1' in merged_df['test_name'].unique(),
-                'active_low_waketime': pd.notna(merged_df.query('test_name=="standby_active_low"')['waketime'].get(0))
+                'active_low_waketime': pd.notna(merged_df.query('test_name=="standby_active_low"').reset_index()['waketime'].get(0))
                     # pd.notna(
                     # merged_df[merged_df['test_name']=='standby_active_low'].iloc[0]['waketime'])
             })
@@ -340,7 +340,7 @@ def get_spectral_df(paths):
 @except_none_log
 @permission_popup
 def get_contrast_ratio(paths):
-    contrast_df = pd.read_csv(paths['contrast'])
+    contrast_df = pd.read_csv(paths['contrast'], header=None).set_index(0).T
     white = contrast_df['white'].iloc[0]
     black = contrast_df['black'].iloc[0]
     return white/black
