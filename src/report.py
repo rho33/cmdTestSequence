@@ -584,12 +584,27 @@ def add_test_specs(report, test_specs_df, **kwargs):
 
 @skip_and_warn
 def add_appendix(report, setup_img_paths, bar3_lum_df, **kwargs):
+    
     with report.new_section('Appendix', page_break=False) as app:
-        with app.new_section('Setup Images') as sui:
-            for i, path in enumerate(setup_img_paths):
-                sui.create_element(f'setup imgae {i}', path)
-        with app.new_section('3bar Luminance Table') as b3:
-            b3.create_element('table', bar3_lum_df)
+        @skip_and_warn
+        def add_setup_img(report, setup_img_paths):
+            with app.new_section('Setup Images') as sui:
+                for i, path in enumerate(setup_img_paths):
+                    sui.create_element(f'setup imgae {i}', path)
+            return report
+        add_setup_img(report, setup_img_paths)
+        
+        @skip_and_warn
+        def add_3bar_lum_table(report, bar3_lum_df):
+            
+
+            with app.new_section('3bar Luminance Table') as b3:
+                b3.create_element('table', bar3_lum_df)
+            return report
+        add_3bar_lum_table(report, bar3_lum_df)
+        
+    if not any(len(child.elements)>1 for child in app.children):
+        raise Exception('No Appendix Content')
     return report
 
 
