@@ -280,6 +280,133 @@ def all_dimming_lines(rsdf):
     return fig
 
 
+def stacked_dimming_line_scatter(pps_list, rsdf, area, limit_funcs):
+    def get_points(pps, rsdf):
+        label_dict = {
+            'default': {
+                'default': 'ABC Off',
+                'default_100': '100 Lux',
+                'default_35': '35 Lux',
+                'default_12': '12 Lux',
+                'default_3': '3 Lux',
+                'default_low_backlight': 'Minimum Backlight',
+            },
+            'brightest': {
+                'brightest': 'ABC Off',
+                'brightest_100': '100 Lux',
+                'brightest_35': '35 Lux',
+                'brightest_12': '12 Lux',
+                'brightest_3': '3 Lux',
+                'brightest_low_backlight': 'Minimum Backlight',
+            },
+            'hdr10': {
+                'hdr10': 'ABC Off',
+                'hdr10_100': '100 Lux',
+                'hdr10_35': '35 Lux',
+                'hdr10_12': '12 Lux',
+                'hdr10_3': '3 Lux',
+                'hdr10_low_backlight': 'Minimum Backlight'
+            }
+        }
+        mask = rsdf['test_name'].apply(lambda name: name in label_dict[pps])
+        cdf = rsdf[mask].copy()
+        cdf['label'] = cdf['test_name'].apply(label_dict[pps].get)
+        points = dict(zip(cdf['label'], zip(cdf['nits'], cdf['watts'])))
+        return points
+    fig, axes = plt.subplots(len(pps_list), 1, figsize=(12.2, 15), sharex=True)
+    fig.tight_layout(h_pad=-1)
+    
+    def get_max_lum():
+        max_lum = 0
+        for pps in pps_list:
+            points = get_points(pps, rsdf)
+            lums = [point[0] for label, point in points.items() if label != 'Measured']
+            limit_func = limit_funcs.get(pps)
+            max_lum = max(max(lums) * 1.25, max_lum)
+            if 'power_cap_func' in limit_func.keywords:
+                lum_bend = 2
+                prev_lim, new_lim = limit_func(area, luminance=lum_bend - 1), limit_func(area, luminance=lum_bend)
+                while new_lim > prev_lim:
+                    prev_lim = new_lim
+                    lum_bend += 1
+                    new_lim = limit_func(area, luminance=lum_bend)
+                max_lum = max(max_lum, lum_bend * 1.25)
+            
+        return max_lum
+    max_lum = get_max_lum()
+    
+    
+    for pps, ax in zip(pps_list, axes):
+        
+        points = get_points(pps, rsdf)
+        
+        limit_func = limit_funcs.get(pps)
+        
+        # fig, ax = plt.subplots(figsize=(10, 10))
+        format_ax(ax=ax, xlabel='Luminance (Nits)', ylabel='Power (W)')
+        
+        ordered_points = OrderedDict(sorted(points.items(), key=lambda i: i[1][0]))
+        lums = [point[0] for label, point in points.items() if label != 'Measured']
+        pwrs = [point[1] for label, point in points.items() if label != 'Measured']
+        ax.plot(lums, pwrs, color='tab:blue')
+        markersize = 10
+        markers = {
+            'ABC Off': 'P',
+            '100 Lux': '^',
+            '35 Lux': '<',
+            '12 Lux': '>',
+            '3 Lux': 'v',
+            'Minimum Backlight': 'v',
+        }
+        handles = []
+        for label, point in reversed(ordered_points.items()):
+            ax.plot(*point, marker=markers[label], color='tab:blue', markersize=markersize)
+            handle = mlines.Line2D([], [], linewidth=0, label=label, marker=markers[label], markersize=markersize)
+            handles.append(handle)
+        
+        abc_on_lums = [point[0] for label, point in points.items() if label != 'ABC Off']
+        abc_on_power = [point[1] for label, point in points.items() if label not in ['ABC Off', 'Minimum Backlight']]
+        if abc_on_power:
+            abc_on = tuple(np.mean([abc_on_lums, abc_on_power], axis=1))
+            measured = tuple(np.mean([points['ABC Off'], abc_on], axis=0))
+            ax.plot(*measured, marker='o', color='black', markersize=markersize)
+            pps_label = pps.title() if pps != 'hdr10' else pps.upper()
+            handle = mlines.Line2D([], [], linewidth=0, label=f'Poa_{pps_label}', marker='.', markersize=markersize,
+                                   color='black')
+            handles.append(handle)
+        
+        # min_lum, max_lum = 0, max(lums) * 1.25
+        min_lum = 0
+        # if 'power_cap_func' in limit_func.keywords:
+        #     lum_bend = 2
+        #     prev_lim, new_lim = limit_func(area, luminance=lum_bend - 1), limit_func(area, luminance=lum_bend)
+        #     while new_lim > prev_lim:
+        #         prev_lim = new_lim
+        #         lum_bend += 1
+        #         new_lim = limit_func(area, luminance=lum_bend)
+        #
+        #     max_lum = max(max_lum, lum_bend * 1.25)
+        
+        xs = np.arange(min_lum, max_lum, .1)
+        ys = [limit_func(area=area, luminance=i) for i in xs]
+        ax.plot(xs, ys, color='tab:orange')
+    
+        handle = mlines.Line2D([], [], linewidth=1, label=f'Power Limit', color='tab:orange')
+        handles.append(handle)
+        
+        # plt.xlim(min_lum, max_lum)
+        ax.legend(handles=handles)
+        # size = ax.get_size_inches() * fig.dpi  # get fig size in pixels
+        pps_name = pps.upper() if 'hdr' in pps else pps.title()
+        ax.annotate(f'{pps_name} PPS', fontsize=20, xycoords='axes fraction', xy=(.5, 0.013), ha='center')
+    # title = {'default': 'Compliance Chart: Default PPS', 'brightest': 'Compliance Chart: Brightest PPS',
+    #          'hdr10': 'Compliance Chart: HDR Default PPS'}.get(pps)
+    # plt.title(title, fontsize=24)
+    fig.subplots_adjust(left=.08, bottom=.05)
+    plt.close()
+    return fig
+
+
 def dimming_line_scatter(pps, rsdf, area, limit_funcs):
     def get_points(pps, rsdf):
         label_dict = {
