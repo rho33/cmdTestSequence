@@ -16,7 +16,7 @@ from ..error_handling import permission_popup, except_none_log
 from ..filefuncs import archive
 
 @except_none_log
-def get_test_specs_df(merged_df, paths, report_type):
+def get_test_specs_df(merged_df, paths, report_type, clean=False):
     """Create a dataframe from test-metadata.csv and test data which displays the test specifics."""
     if report_type == 'pcl' and paths['entry_forms'] is not None:
         test_specs_df = pd.read_excel(paths['entry_forms'], sheet_name='Misc', header=None, index_col=0)
@@ -33,7 +33,14 @@ def get_test_specs_df(merged_df, paths, report_type):
             test_specs_df = pd.concat([df1, df2])
 
         d = {'TV Make': 'Make', 'TV Model': 'Model'}
+
         test_specs_df.index = test_specs_df.index.to_series().replace(d).values
+        if clean:
+            if 'Make' in test_specs_df.index:
+                test_specs_df.loc['Make', 0] = 'XXXXX'
+            if 'Model' in test_specs_df.index:
+                test_specs_df.loc['Model', 0] = 'XXXXX'
+
         
 
     start_date = pd.to_datetime(merged_df['time']).min().date()
@@ -95,7 +102,7 @@ def get_compliance_summary_df(on_mode_df, standby_df, report_type, hdr):
         mask = on_mode_df['test_name'].apply(lambda test_name: test_name in test_names)
         cols = ['test_name', 'watts', 'limit']
         csdf = pd.concat([on_mode_df[mask], standby_df])[cols]
-        csdf['result'] = csdf['result'] = (csdf['watts'] < csdf['limit']).apply({True: 'Pass', False: 'Fail'}.get)
+        csdf['result'] = (csdf['watts'] < csdf['limit']).apply({True: 'Pass', False: 'Fail'}.get)
         idx = on_mode_df[on_mode_df['test_name'] == 'average_measured'].index[0]
         avg_ratio = on_mode_df.loc[idx, 'ratio']
         idx = csdf[csdf['test_name'] == 'average_measured'].index[0]
@@ -150,12 +157,13 @@ def get_on_mode_df(rsdf, limit_funcs, area, limit_type, hdr):
     if limit_type == 'estar':
         on_mode_df['result'] = (on_mode_df['watts'] < on_mode_df['limit']).apply({True: 'Pass', False: 'Fail'}.get)
     else:
-        on_mode_df['ratio'] = on_mode_df['watts'] / on_mode_df['limit']
-        data = {'test_name': 'average_measured', 'ratio': on_mode_df['ratio'].mean()}
+        # on_mode_df['ratio'] = on_mode_df['watts'] / on_mode_df['limit']
+        on_mode_df['gap'] =  on_mode_df['limit'] - on_mode_df['watts']
+        data = {'test_name': 'average_measured', 'gap': on_mode_df['gap'].mean()}
         on_mode_df = on_mode_df.append(data, ignore_index=True)
     
     
-    cols = ['test_name', 'preset_picture', 'abc', 'lux', 'nits', 'limit', 'watts', 'ratio', 'result']
+    cols = ['test_name', 'preset_picture', 'abc', 'lux', 'nits', 'limit', 'watts', 'gap', 'result']
     cols = [col for col in cols if col in on_mode_df.columns]
     on_mode_df = on_mode_df[cols]
     return on_mode_df
@@ -253,9 +261,9 @@ def get_limit_funcs(limit_type, adjustment_factor='4K'):
             return limit
     
     coeffs = pd.read_csv(Path(sys.path[0]).joinpath(r'config\coeffs.csv'), index_col='coef').to_dict()
-    if limit_type == 'estar':
-        for func_name in coeffs:
-            coeffs[func_name]['power_cap_func'] = power_cap_funcs[func_name]
+    # if limit_type == 'estar':
+    for func_name in coeffs:
+        coeffs[func_name]['power_cap_func'] = power_cap_funcs[func_name]
 
     limit_funcs = {func_name: partial(power_limit, **coeff_vals) for func_name, coeff_vals in coeffs.items()}
     return limit_funcs
@@ -586,8 +594,11 @@ def get_screen_area(test_specs_df):
     return float(test_specs_df.loc['Screen Area (sq in)', 0])
 
 @except_none_log
-def get_model(test_specs_df):
-    return f"{str(test_specs_df.loc['Make', 0]).upper()} {str(test_specs_df.loc['Model', 0]).upper()}"
+def get_model(test_specs_df, clean=False):
+    if clean:
+        return 'Model XXXXXXXX'
+    else:
+        return f"{str(test_specs_df.loc['Make', 0]).upper()} {str(test_specs_df.loc['Model', 0]).upper()}"
 
 @except_none_log
 def get_setup_img_paths(paths, data_folder):
@@ -626,13 +637,14 @@ def get_dimming_line_df(rsdf, data_folder):
 
 def get_report_data(paths, data_folder, docopt_args):
     data = {}
+    data['clean'] = docopt_args['-c']
     data['data_folder'] = data_folder
     data['report_type'] = get_report_type(docopt_args, data_folder)
     data['omit_estar'] = docopt_args['--omit']
     data['test_seq_df'] = get_test_seq_df(paths)
     data['merged_df'] = get_merged_df(data['test_seq_df'], paths, data_folder)
     data['hdr'] = get_hdr(data['merged_df'])
-    data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'])
+    data['test_specs_df'] = get_test_specs_df(data['merged_df'], paths, data['report_type'], clean=data['clean'])
     data['adjustment_factor'] = get_adjustment_factor(data['test_specs_df'])
     data['estar_limit_funcs'] = get_limit_funcs('estar', data['adjustment_factor'])
     data['va_limit_funcs'] = get_limit_funcs('alternative', data['adjustment_factor'])
@@ -670,7 +682,7 @@ def get_report_data(paths, data_folder, docopt_args):
     
     data['test_date'] = get_test_date(data['test_specs_df'])
     data['area'] = get_screen_area(data['test_specs_df'])
-    data['model'] = get_model(data['test_specs_df'])
+    data['model'] = get_model(data['test_specs_df'], clean=data['clean'])
     data['estar_on_mode_df'] = get_on_mode_df(data['rsdf'], data['estar_limit_funcs'], data['area'], 'estar', data['hdr'])
     data['va_on_mode_df'] = get_on_mode_df(data['rsdf'], data['va_limit_funcs'], data['area'], 'alternative', data['hdr'])
     # data['estar_on_mode_df'] = get_on_mode_df(data['rsdf'], data['limit_funcs'], data['area'], 'estar', data['hdr'])
