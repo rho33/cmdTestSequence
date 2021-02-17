@@ -40,22 +40,24 @@ def get_test_specs_df(merged_df, paths, report_type, clean=False):
                 test_specs_df.loc['Make', 0] = 'XXXXX'
             if 'Model' in test_specs_df.index:
                 test_specs_df.loc['Model', 0] = 'XXXXX'
+            if 'Serial Number' in test_specs_df.index:
+                test_specs_df.loc['Serial Number', 0] = 'XXXXX'
 
         
 
-    start_date = pd.to_datetime(merged_df['time']).min().date()
-    start_time = pd.to_datetime(merged_df['time']).min().time()
-    end_time = pd.to_datetime(merged_df['time']).max().time()
-    duration = pd.to_datetime(merged_df['time']).max() - pd.to_datetime(merged_df['time']).min()
-    data = {
-        'Test Start Date': start_date,
-        'Test Start Time': start_time,
-        'Test End Time': end_time,
-        'Test Duration': duration
-    }
-
-    beginning_rows = pd.DataFrame.from_dict(data, orient='index')
-    test_specs_df = pd.concat([beginning_rows, test_specs_df])
+    # start_date = pd.to_datetime(merged_df['time']).min().date()
+    # start_time = pd.to_datetime(merged_df['time']).min().time()
+    # end_time = pd.to_datetime(merged_df['time']).max().time()
+    # duration = pd.to_datetime(merged_df['time']).max() - pd.to_datetime(merged_df['time']).min()
+    # data = {
+    #     'Test Start Date': start_date,
+    #     'Test Start Time': start_time,
+    #     'Test End Time': end_time,
+    #     'Test Duration': duration
+    # }
+    #
+    # beginning_rows = pd.DataFrame.from_dict(data, orient='index')
+    # test_specs_df = pd.concat([beginning_rows, test_specs_df])
 
     return test_specs_df
 
@@ -65,7 +67,7 @@ def get_results_summary_df(merged_df, data_folder, waketimes):
     """Create a dataframe with one line per test showing test info and test results (average watts and nits)."""
     rsdf = merged_df.groupby(['tag']).first()
 
-    cols = ['test_name', 'test_time', 'preset_picture', 'video', 'abc', 'lux', 'qs', 'lan', 'wan']
+    cols = ['test_name', 'test_time', 'preset_picture', 'video', 'abc', 'lux', 'qs']
     cols = [col for col in cols if col in rsdf.columns]
     rsdf = rsdf[cols]
     avg_cols = ['watts', 'nits', "APL'"]
