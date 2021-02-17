@@ -10,6 +10,7 @@ Options:
   -v            force VA report type
   -p            force PCL report type
   --omit        omit ENERGYSTAR compliance section
+  -c            cleanse report of model name
 """
 import sys
 from pathlib import Path
@@ -113,6 +114,7 @@ def clean_rsdf(rsdf, cols=None):
         'limit': 'Power Limit (W)',
         'watts': 'Avg Power (W)',
         'ratio': 'Power/Power Limit',
+        'gap': u'Power\u00a0Limit Difference (Limit\u00a0-\u00a0Power)',
         'result': 'Result',
     }
     if cols is None:
@@ -137,35 +139,38 @@ def clean_rsdf(rsdf, cols=None):
 def get_title_page(report_title, model):
     """Wrap title page function to support title and model variables"""
     if report_title is None:
-        report_title = 'TV Power Measurement Report'
+        report_title = 'Energy Efficiency Test Report'
     def title_page(canvas, doc):
         """Create a custom title page for the reportlab pdf doc."""
         canvas.saveState()
     
         pcl_logo_width, pcl_logo_height = 1.33*inch*1.35, 1.43*inch*1.35
         pcl_logo_x = 306 - pcl_logo_width/2
-        pcl_logo_y = 2*inch
+        pcl_logo_y = 5*inch
         pcl_logo_path = Path(sys.path[0]).joinpath(r'img\pcl-logo.jpg')
         canvas.drawImage(pcl_logo_path, pcl_logo_x, pcl_logo_y, width=pcl_logo_width, height=pcl_logo_height,
                          preserveAspectRatio=True)
     
         neea_logo_width, neea_logo_height = 1.24*inch, .82*inch
-        neea_logo_y = 5*inch
+        neea_logo_y = 7.2*inch
         neea_logo_x = 306 - neea_logo_width/2
         neea_logo_path = Path(sys.path[0]).joinpath(r'img\neea.png')
         canvas.drawImage(neea_logo_path, neea_logo_x, neea_logo_y, width=neea_logo_width, height=neea_logo_height,
                          preserveAspectRatio=True)
         font='Calibri'
         canvas.setFont(font, 36)
-        title_y = 600
+        title_y = 300
         canvas.drawCentredString(306, title_y, report_title)
+        canvas.setFont(font, 32)
+        canvas.drawCentredString(306, 8.5*inch, 'TV Test System')
         canvas.setFont(font, 22)
-        canvas.drawCentredString(306, title_y-50, f'Model: {model}')
+        canvas.drawCentredString(306, title_y-50, f'TV Model: {model}')
         canvas.line(x1=inch, x2=7.5*inch, y1=title_y+37, y2=title_y+37)
         canvas.line(x1=inch, x2=7.5 * inch, y1=title_y - 67, y2=title_y - 67)
+        canvas.line(x1=inch, x2=7.5 * inch, y1=9.35*inch, y2=9.35*inch)
         canvas.setFont('Calibri-Bold', 20)
-        canvas.drawCentredString(306, neea_logo_y+neea_logo_height+.25*inch, 'Funded By:')
-        canvas.drawCentredString(306, pcl_logo_y + pcl_logo_height, 'Prepared By:')
+        # canvas.drawCentredString(306, neea_logo_y+neea_logo_height+.25*inch, 'Funded By:')
+        # canvas.drawCentredString(306, pcl_logo_y + pcl_logo_height, 'Prepared By:')
     
         canvas.setFont(font, 16)
         canvas.restoreState()
@@ -179,15 +184,15 @@ def on_mode_df_style(on_mode_df, report_type):
     
     style = []
     for i, row in on_mode_df.iterrows():
-        if row['test_name']=='average_measured' and 'ratio' in on_mode_df.columns:
-            if pd.notnull(row['ratio']):
-                if isinstance(row['ratio'], str):
-                    if eval(row['ratio']) == 1:
+        if row['test_name']=='average_measured' and 'gap' in on_mode_df.columns:
+            if pd.notnull(row['gap']):
+                if isinstance(row['gap'], str):
+                    if eval(row['gap']) == 1:
                         color = 'green'
                     else:
                         color = 'red'
                 else:
-                    if row['ratio']<1:
+                    if row['gap']>0:
                         color = 'green'
                     else:
                         color = 'red'
@@ -369,7 +374,8 @@ def add_compliance_section(report, merged_df, report_type, omit_estar, estar_on_
                     'hdr10_12': 'P<sub rise=2>oa_HDR10_12Lux</sub>',
                     'hdr10_3': 'P<sub rise=2>oa_HDR10_3Lux</sub>',
                     'hdr10_measured': 'P<sub rise=2>oa_HDR10</sub>',
-                    'average_measured': 'P<sub rise=2>oa_Average</sub>'
+                    'average_measured': 'P<sub rise=2>oa_Average</sub>',
+                    'average_measured': 'Average'
                 }
             
                 table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
@@ -399,9 +405,10 @@ def add_compliance_section(report, merged_df, report_type, omit_estar, estar_on_
                 #   potentially include within same function
                 pass
             else:
-                text = "P<sub rise=2>oa_Average</sub> is the average Power/Power Limit of P<sub " \
-                       "rise=2>oa_Default</sub>, P<sub rise=2>oa_Brightest</sub>, and P<sub rise=2>oa_HDR10</sub> " \
-                       "(if applicable). P<sub rise=2>oa_Average</sub> must be less than 1.0 to comply. "
+                # text = "P<sub rise=2>oa_Average</sub> is the average Power/Power Limit of P<sub " \
+                #        "rise=2>oa_Default</sub>, P<sub rise=2>oa_Brightest</sub>, and P<sub rise=2>oa_HDR10</sub> " \
+                #        "(if applicable). P<sub rise=2>oa_Average</sub> must be less than 1.0 to comply. "
+                text = ' Average Power Limit Difference must be positive to comply.'
                 section.create_element('text', text)
             s = f'TV Area: {area} sq. in.<br />Adjustment Factor: {adjustment_factor}'
             section.create_element('compliance paramaters', s)
@@ -426,28 +433,34 @@ def add_compliance_section(report, merged_df, report_type, omit_estar, estar_on_
         @skip_and_warn
         def add_on_mode_charts(report, section, limit_funcs):
             # add scatter plot for each pps showing tv power measurements in relation to the relevant limit function line
-            for pps in ['default', 'brightest']:
-                section.create_element(
-                    f'{pps} dimming plot',
-                    plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
-                )
-            if hdr:
-                section.create_element(
-                    'hdr dimming plot',
-                    plots.dimming_line_scatter('hdr10', rsdf, area, limit_funcs)
-                )
+            pps_list = ['default', 'brightest']
+            if hdr: pps_list += ['hdr10']
+            section.create_element(
+                f'Dimming plots',
+                plots.stacked_dimming_line_scatter(pps_list, rsdf, area, limit_funcs)
+            )
+            # for pps in ['default', 'brightest']:
+            #     section.create_element(
+            #         f'{pps} dimming plot',
+            #         plots.dimming_line_scatter(pps, rsdf, area, limit_funcs)
+            #     )
+            # if hdr:
+            #     section.create_element(
+            #         'hdr dimming plot',
+            #         plots.dimming_line_scatter('hdr10', rsdf, area, limit_funcs)
+            #     )
             
         if report_type!='estar':
-            with cat.new_section('VA On Mode Summary') as on_mode_summary:
+            with cat.new_section('On Mode Summary') as on_mode_summary:
                     # on_mode_summary.create_element('adjustment factor table', adjustment_factor_df)
                 add_compliance_summary_on_mode(report, on_mode_summary, 'alternative', va_limit_funcs, va_on_mode_df)
-                with on_mode_summary.new_section('VA On Mode Charts') as on_mode_charts:
+                with on_mode_summary.new_section('On Mode Charts') as on_mode_charts:
                     add_on_mode_charts(report, on_mode_charts, va_limit_funcs)
-        if not omit_estar:
-            with cat.new_section('ENERGY STAR On Mode Summary') as estar_on_mode_summary:
-                add_compliance_summary_on_mode(report, estar_on_mode_summary, 'estar', estar_limit_funcs, estar_on_mode_df)
-                with estar_on_mode_summary.new_section('ENERGY STAR On Mode Charts') as estar_on_mode_charts:
-                    add_on_mode_charts(report, estar_on_mode_charts, estar_limit_funcs)
+        # if not omit_estar:
+        #     with cat.new_section('ENERGY STAR On Mode Summary') as estar_on_mode_summary:
+        #         add_compliance_summary_on_mode(report, estar_on_mode_summary, 'estar', estar_limit_funcs, estar_on_mode_df)
+        #         with estar_on_mode_summary.new_section('ENERGY STAR On Mode Charts') as estar_on_mode_charts:
+        #             add_on_mode_charts(report, estar_on_mode_charts, estar_limit_funcs)
             
         with cat.new_section('All On Mode Tests Chart') as all_tests_chart:
             all_tests_chart.create_element('all dimming lines plot', plots.all_dimming_lines(rsdf))
@@ -640,8 +653,10 @@ def make_report(report_data):
     report = add_test_results_plots(report, **report_data)
     report = add_appendix(report, **report_data)
     filename = {'estar': 'ENERGYSTAR-report.pdf',
-                   'alternative': 'va-report.pdf',
+                   'alternative': 'report.pdf',
                    'pcl': 'pcl-report.pdf'}.get(report_data['report_type'])
+    if report_data['clean']:
+        filename = f'clean-{filename}'
     build_report(report, filename, report_data['data_folder'], report_data['model'], report_data['test_date'])
     
 
