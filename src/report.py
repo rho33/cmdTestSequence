@@ -595,29 +595,34 @@ def add_test_specs(report, test_specs_df, **kwargs):
         test_specs.create_element('test spec table', test_specs_df.reset_index().applymap(round_if_float), grid_style=style, header=False)
     return report
 
+
+def is_appendix_content(setup_img_paths, bar3_lum_df, **kwargs):
+    
+    return bar3_lum_df is not None or bool(setup_img_paths)
+
+
 @skip_and_warn
 def add_appendix(report, setup_img_paths, bar3_lum_df, **kwargs):
     
     with report.new_section('Appendix', page_break=False) as app:
-        @skip_and_warn
-        def add_setup_img(report, setup_img_paths):
-            with app.new_section('Setup Images') as sui:
-                for i, path in enumerate(setup_img_paths):
-                    sui.create_element(f'setup imgae {i}', path)
-            return report
-        add_setup_img(report, setup_img_paths)
-        
-        @skip_and_warn
-        def add_3bar_lum_table(report, bar3_lum_df):
-            
+        if setup_img_paths:
+            @skip_and_warn
+            def add_setup_img(report, setup_img_paths):
+                with app.new_section('Setup Images') as sui:
+                    for i, path in enumerate(setup_img_paths):
+                        sui.create_element(f'setup imgae {i}', path)
+                return report
+            add_setup_img(report, setup_img_paths)
+        if bar3_lum_df is not None:
+            @skip_and_warn
+            def add_3bar_lum_table(report, bar3_lum_df):
 
-            with app.new_section('3bar Luminance Table') as b3:
-                b3.create_element('table', bar3_lum_df)
-            return report
-        add_3bar_lum_table(report, bar3_lum_df)
-        
-    if not any(len(child.elements)>1 for child in app.children):
-        raise Exception('No Appendix Content')
+                with app.new_section('3bar Luminance Table') as b3:
+                    b3.create_element('table', bar3_lum_df)
+                return report
+            add_3bar_lum_table(report, bar3_lum_df)
+    # if not any(len(child.elements)>1 for child in app.children):
+    #     raise Exception('No Appendix Content')
     return report
 
 
@@ -651,7 +656,8 @@ def make_report(report_data):
     report = add_supplemental(report, **report_data)
     report = add_test_results_table(report, **report_data)
     report = add_test_results_plots(report, **report_data)
-    report = add_appendix(report, **report_data)
+    if is_appendix_content(**report_data):
+        report = add_appendix(report, **report_data)
     filename = {'estar': 'ENERGYSTAR-report.pdf',
                    'alternative': 'report.pdf',
                    'pcl': 'pcl-report.pdf'}.get(report_data['report_type'])
