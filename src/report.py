@@ -336,6 +336,8 @@ def add_compliance_section(report, merged_df, report_type, omit_estar, estar_on_
                 }
                 table_df.insert(0, 'Measurement', table_df['Test Name'].apply(rename_tests.get))
                 standby_summary.create_element('table', table_df, grid_style=standby_df_style(standby_df))
+                standby_text = 'Standby power is calculated from the last 20 minutes (1200 seconds) of test.'
+                standby_summary.create_element('text', standby_text)
         
             add_compliance_summary_standby(report)
             with standby_summary.new_section('Standby Chart') as standby_chart:
