@@ -42,6 +42,7 @@ def create_test_seq_df(test_order, rename_pps, qs, qson=False):
     df = pd.DataFrame(columns=columns)
     for test in test_order:
         df = df.append(tests[test], ignore_index=True)
+    df = df[columns]
     
     # get last ccf test so we know when to start adding load_ccf and peak commands
     last_ccf_idx = df[df['test_name'].str.contains('ccf')].index[-1]
